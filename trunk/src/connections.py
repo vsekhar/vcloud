@@ -2,6 +2,7 @@ from __future__ import with_statement
 import threading
 import random
 import sys
+import time
 
 class Empty(BaseException):
     pass
