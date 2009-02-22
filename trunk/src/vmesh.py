@@ -8,11 +8,12 @@ import sys
 # My imports
 import orgqueues
 from kernel import KernelHandler
-from xmlserver import VGPServer
-from peermanager import PeerManager
+#from xmlserver import VGPServer
+from peermanager2 import PeerManager
 
+# User-defined constants
 HOST, PORT = "localhost", 0
-peers_to_maintain = 3
+peers_to_maintain = 2
 
 if __name__ == "__main__":
     
@@ -32,16 +33,11 @@ if __name__ == "__main__":
         firstport = None
         firstpeer = None
 
-    # XML-RPC server
-    if False:
-        server = VGPServer((HOST, PORT), firstpeer, peers_to_maintain)
-        data = server.get_server_address()
-        print("Listening on ", data)
-    
     # PeerManager
     if True:
-        server = PeerManager(peers_to_maintain, firstpeer)
-
+        server = PeerManager((HOST,PORT), firstpeer, peers_to_maintain, orgqueues.inqueue, orgqueues.outqueue)
+        print("Listening on " + HOST + " port " + str(server.port))
+    
     try:
         while True:
             time.sleep(1)
