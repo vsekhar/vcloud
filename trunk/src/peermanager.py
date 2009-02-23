@@ -5,9 +5,34 @@ import time
 import random
 
 import orgqueues
-from addressedrequesthandler import MyXMLRPCRequestHandler
+from addressedrequesthandler import AddressedXMLRPCRequestHandler
 
 class PeerError(Exception): pass
+
+class XMLDaemon:
+    def __init__(self, inq, awr, prs, address_port):
+        
+        self.inqueue = inqueue
+        self.awarelist = awr
+        self.peerslist = prs
+        self.address_port = address_port
+            
+        # setup and start XML-RPC server
+        self.XML_server = xmlrpc.server.SimpleXMLRPCServer(
+                                address_port,
+                                AddressedXMLRPCRequestHandler,
+                                logRequests=False)
+        self.XML_server.register_function(self.X_remote_transfer)
+        self.XML_server.register_function(self.X_get_peers)
+        self.XML_server_thread = threading.Thread(target=self.XML_server.serve_forever)
+        self.XML_server_thread.setDaemon(True)
+        self.XML_server_thread.start()
+        
+    def X_remote_transfer(self, org, port, host):
+        pass
+    
+    def X_get_peers(self):
+        pass
 
 class Peer:
     def __init__(self, peers):
@@ -69,7 +94,7 @@ class PeerManager:
         # setup and start XML-RPC server
         self.XML_server = xmlrpc.server.SimpleXMLRPCServer(
                                 address_port,
-                                MyXMLRPCRequestHandler,
+                                AddressedXMLRPCRequestHandler,
                                 logRequests=False)
         self.XML_server.register_function(self.X_remote_transfer)
         self.XML_server.register_function(self.X_get_peers)
