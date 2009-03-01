@@ -15,14 +15,6 @@ class KernelHandler:
         self.inqueue = inqueue
         self.outqueue = outqueue
         
-    def __del__(self):
-        if self.proc:
-            try:
-                self._write("quit\n")
-            except(IOError):
-                os.kill(self.proc.pid, signal.SIGKILL)
-            self.proc = None
-    
     def _write(self, data):
         if not self.proc:
             raise Exception("Kernel not started")
