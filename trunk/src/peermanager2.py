@@ -8,7 +8,7 @@ import random
 
 #import orgqueues
 import timedlist
-from addressedrequesthandler import MyXMLRPCRequestHandler
+from addressedrequesthandler import AddressedXMLRPCRequestHandler
 
 peer_timeout = 60
 
@@ -25,7 +25,7 @@ class PeerManager:
         
         self.XMLServer = xmlrpc.server.SimpleXMLRPCServer(
                                 address_port,
-                                MyXMLRPCRequestHandler,
+                                AddressedXMLRPCRequestHandler,
                                 logRequests=False)
         self.XMLServer.register_function(self.X_join)
         self.XMLServer.register_function(self.X_message)
