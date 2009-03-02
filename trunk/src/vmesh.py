@@ -9,11 +9,10 @@ import sys
 import orgqueues
 from kernel import KernelHandler
 #from xmlserver import VGPServer
-from peermanager2 import PeerManager
+import peermanager2
 
 # User-defined constants
 HOST, PORT = "localhost", 0
-peers_to_maintain = 2
 
 if __name__ == "__main__":
     
@@ -34,9 +33,8 @@ if __name__ == "__main__":
         firstpeer = None
 
     # PeerManager
-    if True:
-        server = PeerManager((HOST,PORT), firstpeer, peers_to_maintain, orgqueues.inqueue, orgqueues.outqueue)
-        print("Listening on " + HOST + " port " + str(server.port))
+    peermanager = peermanager2.PeerManager((HOST,PORT), orgqueues.inqueue, orgqueues.outqueue, firstpeer)
+    print("Listening on " + peermanager.address + " : " + str(peermanager.port))
     
     try:
         while True:
