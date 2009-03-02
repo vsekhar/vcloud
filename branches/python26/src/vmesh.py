@@ -2,7 +2,7 @@
 import sys
 import time
 import threading
-import queue
+import Queue
 import sys
 
 # My imports

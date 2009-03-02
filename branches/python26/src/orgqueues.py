@@ -1,4 +1,4 @@
-import queue
+import Queue
 
-inqueue = queue.Queue()
-outqueue = queue.Queue()
+inqueue = Queue.Queue()
+outqueue = Queue.Queue()

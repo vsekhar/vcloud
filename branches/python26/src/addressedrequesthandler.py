@@ -1,6 +1,6 @@
-import xmlrpc.server
+import SimpleXMLRPCServer
 
-class AddressedXMLRPCRequestHandler(xmlrpc.server.SimpleXMLRPCRequestHandler):
+class AddressedXMLRPCRequestHandler(SimpleXMLRPCServer.SimpleXMLRPCRequestHandler):
     # custom dispatcher inserts requester's address as a parameter
     def _dispatch(self, method, params):
         try:

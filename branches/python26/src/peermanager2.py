@@ -1,7 +1,7 @@
 from __future__ import with_statement
-import xmlrpc.server
-import xmlrpc.client
-import queue
+from SimpleXMLRPCServer import SimpleXMLRPCServer
+import xmlrpclib
+import Queue
 import threading
 import time
 import random
@@ -50,7 +50,7 @@ class Proxy:
     def __init__(self, addr_port):
         self.host, self.port = addr_port
         self.uri = "http://" + self.host + ":" + str(self.port)
-        self.do = xmlrpc.client.ServerProxy(self.uri)
+        self.do = xmlrpclib.ServerProxy(self.uri)
 
 class Sender:
     def __init__(self, outqueue, manager):
@@ -91,10 +91,10 @@ class PeerManager:
         self.id = random.random()
         
         # XML RPC Server
-        self.XMLServer = xmlrpc.server.SimpleXMLRPCServer(
-                                                          addr_port,
-                                                          AddressedXMLRPCRequestHandler,
-                                                          logRequests=False)
+        self.XMLServer = SimpleXMLRPCServer(
+                                          addr_port,
+                                          AddressedXMLRPCRequestHandler,
+                                          logRequests=False)
         self.XMLServer.register_function(self.X_message)
         self.XMLServer.register_function(self.X_getpeers)
         self.XMLServer.register_function(self.X_join)

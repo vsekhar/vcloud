@@ -1,7 +1,7 @@
 import subprocess
 import os
 import select
-import queue
+import Queue
 
 goodresponse = "Done."
 
@@ -53,7 +53,7 @@ class KernelHandler:
                 org = self.inqueue.get_nowait()
                 self._write('insert ' + org + '\n')
                 self.checkresponse()
-            except queue.Empty:
+            except Queue.Empty:
                 break
     
     def exportorgs(self, count=1):
