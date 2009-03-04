@@ -46,7 +46,7 @@ class Peer:
             self.time = newpeer.time
             self.errors = newpeer.errors
 
-class Proxy:
+class PeerProxy:
     def __init__(self, addr_port):
         self.host, self.port = addr_port
         self.uri = "http://" + self.host + ":" + str(self.port)
@@ -71,7 +71,7 @@ class Sender:
             while True:
                 try:
                     peer = self.manager.getpeer() #blocking
-                    proxy = Proxy(peer.addr_port)
+                    proxy = PeerProxy(peer.addr_port)
                     if proxy.do.X_message(org, self.manager.port):
                         peer.ok()
                         break
@@ -106,7 +106,7 @@ class PeerManager:
         
         # Join first peer
         if first_peer is not None:
-            proxy = Proxy(first_peer)
+            proxy = PeerProxy(first_peer)
             if proxy.do.X_join(self.id, self.port):
                 with self.lock:
                     self.connections[first_peer] = Peer(first_peer)
@@ -224,7 +224,7 @@ class PeerManager:
 
         # try to join, return on first successful join
         for addr_port in newawares:
-            proxy = Proxy(addr_port)
+            proxy = PeerProxy(addr_port)
             try:
                 # careful not to hold the lock while calling X_join
                 response = proxy.do.X_join(self.id, self.port) 
@@ -253,7 +253,7 @@ class PeerManager:
                 addr_port, peer = self.connections.popitem()
             except KeyError:
                 return
-        proxy = Proxy(addr_port)
+        proxy = PeerProxy(addr_port)
         try:
             peers = proxy.do.X_getpeers(self.port)
             peer.ok()
