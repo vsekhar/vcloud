@@ -58,7 +58,7 @@ class Sender:
         self.manager = manager
         
         self.stop = False
-        self.send_thread = threading.Thread(target=self.send_loop)
+        self.send_thread = threading.Thread(target=self.send_loop, name="send_thread")
         self.send_thread.setDaemon(True)
         self.send_thread.start()
     
@@ -100,7 +100,7 @@ class PeerManager:
         self.XMLServer.register_function(self.X_join)
         self.address, self.port = self.XMLServer.server_address
         
-        self.XMLServer_thread = threading.Thread(target=self.XMLServer.serve_forever)
+        self.XMLServer_thread = threading.Thread(target=self.XMLServer.serve_forever, name="XMLThread")
         self.XMLServer_thread.setDaemon(True)
         self.XMLServer_thread.start()
         
@@ -113,10 +113,10 @@ class PeerManager:
 
         # Peer management threads
         self.stop = False
-        self.resupply_thread = threading.Thread(target=self.resupply_loop)
+        self.resupply_thread = threading.Thread(target=self.resupply_loop, name="ResupplyThread")
         self.resupply_thread.setDaemon(True)
         self.resupply_thread.start()
-        self.kill_thread = threading.Thread(target=self.kill_loop)
+        self.kill_thread = threading.Thread(target=self.kill_loop, name="KillThread")
         self.kill_thread.setDaemon(True)
         self.kill_thread.start()
         
@@ -124,11 +124,16 @@ class PeerManager:
         self.sender = Sender(self.outqueue, self)
         
         # Debug the locking
-        self.heartbeat_thread = threading.Thread(target=self.heartbeat)
+        self.heartbeat_thread = threading.Thread(target=self._heartbeat, name="HeartbeatThread")
         self.heartbeat_thread.setDaemon(True)
         self.heartbeat_thread.start()
 
-        
+    def _heartbeat(self):
+        while True:
+            with self.lock:
+                print("Heartbeat")
+            time.sleep(1)
+
     def acceptable(self, addr_port):
         "Checks whether receiving from a given peer is ok"
         with self.lock:
@@ -139,18 +144,22 @@ class PeerManager:
                 self.aware[addr_port] = Peer(addr_port)
                 return False
     
-    def join(self, id, addr_port):
+    def _join(self, id, addr_port):
         if id == self.id:
-            return False
+            print("Selfing out")
+            return "SELF"
+        host, port = addr_port
         with self.lock:
             if addr_port in self.connections:
-                return True
+                print("Joining: " + host + ":" + str(port))
+                return "OK"
             elif len(self.connections) < peers_to_maintain:
                 self.connections[addr_port] = Peer(addr_port)
-                return True
+                print("Joining: " + host + ":" + str(port))
+                return "OK"
             else:
                 self.aware[addr_port] = Peer(addr_port)
-                return False
+                return "NO"
     
     def returnpeer(self, peer):
         "Puts a peer back into the connections list"
@@ -160,17 +169,22 @@ class PeerManager:
     def getpeer(self):
         "Gets a peer from the connections list, blocks until there is one"
         while True:
-            with self.lock:
-                try:
+            try:
+                with self.lock:
                     k,v = self.connections.popitem()
-                    return v
-                except KeyError:
-                    pass
+                return v
+            except KeyError:
+                pass
             time.sleep(random.random() / 2.0)
     
-    def getpeers(self):
+    def _getpeers(self, addr_port):
+        host,port = addr_port
         with self.lock:
-            return list(set(self.connections.keys()) | set(self.aware.keys()))
+            # return connection and awares, but NOT the requester
+            c = self.connections
+            a = self.aware
+            requester = {(host, port)}
+            return list(set(c).union(a).difference(requester))
         
     def stop(self):
         "Stops the manage_loop and kill_loop threads"
@@ -196,37 +210,62 @@ class PeerManager:
             time.sleep(random.random())
             
     def resupply_from_aware(self):
+
+        # Get awares, filter out those already connected
         with self.lock:
-            if len(self.aware):
-                l = list(self.aware.keys())
-                for addr_port in l:
-                    if addr_port not in self.connections:
-                        proxy = Proxy(addr_port)
-                        try:
-                            if proxy.do.X_join(self.id, self.port):
-                                self.connections[addr_port] = self.aware[addr_port]
-                                del self.aware[addr_port]
-                                return
-                        except IOError:
-                            self.aware[addr_port].error()
-                    else:
+            awares = set(self.aware.keys())
+            newawares = awares.difference(self.connections) 
+            delawares = awares.intersection(self.connections)
+
+        # delete ones that are connected
+        for addr_port in delawares:
+            with self.lock:
+                del self.aware[addr_port]
+
+        # try to join, return on first successful join
+        for addr_port in newawares:
+            proxy = Proxy(addr_port)
+            try:
+                # careful not to hold the lock while calling X_join
+                response = proxy.do.X_join(self.id, self.port) 
+                if response == "OK":
+                    # remote peer accepted join, so add to connection
+                    # and remove from aware list
+                    with self.lock:
+                        self.connections[addr_port] = self.aware[addr_port]
                         del self.aware[addr_port]
+                    return
+                elif response == "SELF":
+                    with self.lock:
+                        del self.aware[addr_port]
+                else:
+                    # if remote peer refuses, do nothing
+                    # NB: this is not a peer error, nor a reason to remove
+                    #     the peer from the aware list
+                    pass
+            except IOError:
+                with self.lock:
+                    self.aware[addr_port].error()                    
                 
     def resupply_from_connections(self):
         with self.lock:
-            if len(self.connections):
+            try:
                 addr_port, peer = self.connections.popitem()
-                proxy = Proxy(addr_port)
-                try:
-                    peers = proxy.do.X_getpeers(self.port)
-                    peer.ok()
-                    for newpeer in peers:
-                        newpeer_tuple = tuple(newpeer)
-                        self.aware[newpeer_tuple] = Peer(newpeer)
-                except IOError:
-                    peer.error()
-                finally:
-                    self.connections[addr_port] = peer
+            except KeyError:
+                return
+        proxy = Proxy(addr_port)
+        try:
+            peers = proxy.do.X_getpeers(self.port)
+            peer.ok()
+            for newpeer in peers:
+                newpeer_tuple = tuple(newpeer)
+                with self.lock:
+                    self.aware[newpeer_tuple] = Peer(newpeer_tuple)
+        except IOError:
+            peer.error()
+        finally:
+            with self.lock:
+                self.connections[addr_port] = peer
                 
     def resupply_loop(self):
         "Resupply connections list from awarelist and by asking other peers"
@@ -237,12 +276,6 @@ class PeerManager:
                 self.resupply_from_connections()
             time.sleep(random.random())
     
-    def heartbeat(self):
-        while True:
-            with self.lock:
-                print("Heartbeat")
-            time.sleep(0.5)
-            
     #
     # XML-RPC functions (called remotely)
     #
@@ -250,15 +283,14 @@ class PeerManager:
     def X_message(self, msg, port, host):
         if self.acceptable((host, port)):
             self.inqueue.put(msg)
-            print("Getting msg from: " + host + ":" + str(port))
+            # print("Getting msg from: " + host + ":" + str(port))
             return True
         else:
             return False
     
     def X_getpeers(self, port, host):
-        print("Sending peers to: " + host + ":" + str(port))
-        return self.getpeers()
+        # print("Sending peers to: " + host + ":" + str(port))
+        return self._getpeers((host,port))
     
     def X_join(self, id, port, host):
-        print("Joining: " + host + ":" + str(port))
-        return self.join(id, (host, port))
+        return self._join(id, (host, port))
