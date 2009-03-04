@@ -2,6 +2,7 @@ import subprocess
 import os
 import select
 import queue
+import threading
 
 goodresponse = "Done."
 
@@ -14,6 +15,14 @@ class KernelHandler:
                                      shell=True)
         self.inqueue = inqueue
         self.outqueue = outqueue
+        
+        self.kernel_thread = threading.Thread(target=self.run, name="KernelThread")
+        self.kernel_thread.setDaemon(True)
+        self.kernel_thread.start()
+    
+    def __del__(self):
+        self.stop()
+        self.kernel_thread.join()
         
     def _write(self, data):
         if not self.proc:
