@@ -2,7 +2,6 @@
 from __future__ import with_statement
 import xmlrpc.server
 import xmlrpc.client
-import queue
 import threading
 import time
 import random

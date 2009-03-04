@@ -1,9 +1,7 @@
 # Library imports
 import sys
 import time
-import threading
 import queue
-import sys
 
 # My imports
 import kernel
