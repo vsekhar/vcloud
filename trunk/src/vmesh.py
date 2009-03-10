@@ -14,16 +14,15 @@ inqueue = queue.Queue()
 outqueue = queue.Queue()
 
 def main(argv):
-    if len(sys.argv) >= 3:
-        firsthost = sys.argv[1]
-        firstport = sys.argv[2]
-        firstpeer = (firsthost, int(firstport))
+    executable = argv[0]
+    if len(argv) >= 3:
+        firstpeer = (argv[1], int(argv[2]))
     else:
         firsthost = None
         firstport = None
         firstpeer = None
 
-    kernel = kernel.KernelHandler(sys.argv[0], inqueue, outqueue)
+    mykernel = kernel.KernelHandler(executable, inqueue, outqueue)
     mypeermanager = peermanager.PeerManager((HOST,PORT), inqueue, outqueue, firstpeer)
     print("Listening on " + mypeermanager.address + " : " + str(mypeermanager.port))
     
@@ -35,3 +34,4 @@ def main(argv):
 
 if __name__ == "__main__":
     main(sys.argv[1:])
+
