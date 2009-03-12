@@ -123,10 +123,11 @@ class PeerManager:
         # Sender
         self.sender = Sender(self.outqueue, self)
         
-        # Debug the locking
-        self.heartbeat_thread = threading.Thread(target=self._heartbeat, name="HeartbeatThread")
-        self.heartbeat_thread.setDaemon(True)
-        self.heartbeat_thread.start()
+        if False:
+            # Debug the locking
+            self.heartbeat_thread = threading.Thread(target=self._heartbeat, name="HeartbeatThread")
+            self.heartbeat_thread.setDaemon(True)
+            self.heartbeat_thread.start()
 
     def _heartbeat(self):
         while True:
