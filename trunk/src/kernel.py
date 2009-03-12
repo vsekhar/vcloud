@@ -88,10 +88,14 @@ class KernelHandler:
     def run(self):
         self.go = True
         self.updatefitness()
+        count = 0
         while self.go:
             self.importorgs()
             self.updatefitness()
             self.sort()
             self.advance()
             self.exportorgs()
+            count = count + 1
+            if count % 25 == 0:
+                print(self.stats())
         self.quit()
