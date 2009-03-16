@@ -8,6 +8,7 @@ import random
 
 # My imports
 from addressedrequesthandler import AddressedXMLRPCRequestHandler
+import peerproxy
 
 # User constants
 peer_timeout = 60
@@ -46,12 +47,6 @@ class Peer:
             self.time = newpeer.time
             self.errors = newpeer.errors
 
-class PeerProxy:
-    def __init__(self, addr_port):
-        self.host, self.port = addr_port
-        self.uri = "http://" + self.host + ":" + str(self.port)
-        self.do = xmlrpc.client.ServerProxy(self.uri)
-
 class Sender:
     def __init__(self, outqueue, manager):
         self.outqueue = outqueue
@@ -71,7 +66,7 @@ class Sender:
             while True:
                 try:
                     peer = self.manager.getpeer() #blocking
-                    proxy = PeerProxy(peer.addr_port)
+                    proxy = peerproxy.PeerProxy(peer.addr_port)
                     if proxy.do.X_message(org, self.manager.port):
                         peer.ok()
                         break
@@ -98,6 +93,7 @@ class PeerManager:
         self.XMLServer.register_function(self.X_message)
         self.XMLServer.register_function(self.X_getpeers)
         self.XMLServer.register_function(self.X_join)
+        self.XMLServer.register_function(self.X_getinfo)
         self.address, self.port = self.XMLServer.server_address
         
         self.XMLServer_thread = threading.Thread(target=self.XMLServer.serve_forever, name="XMLThread")
@@ -106,7 +102,7 @@ class PeerManager:
         
         # Join first peer
         if first_peer is not None:
-            proxy = PeerProxy(first_peer)
+            proxy = peerproxy.PeerProxy(first_peer)
             if proxy.do.X_join(self.id, self.port):
                 with self.lock:
                     self.connections[first_peer] = Peer(first_peer)
@@ -178,14 +174,10 @@ class PeerManager:
                 pass
             time.sleep(random.random() / 2.0)
     
-    def _getpeers(self, addr_port):
-        host,port = addr_port
+    def _getpeers(self):
         with self.lock:
-            # return connection and awares, but NOT the requester
-            c = self.connections
-            a = self.aware
-            requester = {(host, port)}
-            return list(set(c).union(a).difference(requester))
+            # return connection and awares
+            return set(self.connections).union(self.aware)
         
     def stop(self):
         "Stops the manage_loop and kill_loop threads"
@@ -225,7 +217,7 @@ class PeerManager:
 
         # try to join, return on first successful join
         for addr_port in newawares:
-            proxy = PeerProxy(addr_port)
+            proxy = peerproxy.PeerProxy(addr_port)
             try:
                 # careful not to hold the lock while calling X_join
                 response = proxy.do.X_join(self.id, self.port) 
@@ -254,7 +246,7 @@ class PeerManager:
                 addr_port, peer = self.connections.popitem()
             except KeyError:
                 return
-        proxy = PeerProxy(addr_port)
+        proxy = peerproxy.PeerProxy(addr_port)
         try:
             peers = proxy.do.X_getpeers(self.port)
             peer.ok()
@@ -290,8 +282,18 @@ class PeerManager:
             return False
     
     def X_getpeers(self, port, host):
-        # print("Sending peers to: " + host + ":" + str(port))
-        return self._getpeers((host,port))
+        "Return peers but not the requester"
+        peers = self._getpeers()
+        requester = {(host, port)}
+        return list(peers.difference(requester))
     
     def X_join(self, id, port, host):
         return self._join(id, (host, port))
+    
+    def X_getinfo(self, host):
+        ret = dict()
+        ret["outqueue_size"] = self.outqueue.qsize()
+        ret["inqueue_size"] = self.inqueue.qsize()
+        ret["peers"] = list(self._getpeers())
+        return ret
+    
