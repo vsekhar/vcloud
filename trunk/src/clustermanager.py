@@ -23,4 +23,8 @@ def trace(host, port):
     return done
 
 if __name__ == "__main__":
-    print(trace(sys.argv[1], int(sys.argv[2])))
+    data = trace(sys.argv[1], int(sys.argv[2]))
+    for k,v in data.items():
+        print(k, ": ")
+        for a,b in v.items():
+            print("\t", a, "=", b)
