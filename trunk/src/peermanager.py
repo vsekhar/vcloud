@@ -175,9 +175,15 @@ class PeerManager:
             time.sleep(random.random() / 2.0)
     
     def _getpeers(self):
+        return self._getconnections().union(self._getawares())
+
+    def _getconnections(self):
         with self.lock:
-            # return connection and awares
-            return set(self.connections).union(self.aware)
+            return set(self.connections)
+    
+    def _getawares(self):
+        with self.lock:
+            return set(self.aware)
         
     def stop(self):
         "Stops the manage_loop and kill_loop threads"
@@ -294,6 +300,7 @@ class PeerManager:
         ret = dict()
         ret["outqueue_size"] = self.outqueue.qsize()
         ret["inqueue_size"] = self.inqueue.qsize()
-        ret["peers"] = list(self._getpeers())
+        ret["connections"] = list(self._getconnections())
+        ret["awares"] = list(self._getawares())
         return ret
     
