@@ -9,7 +9,7 @@ def trace(host, port):
     done = dict()
     queue = [(host, port)]
     while len(queue):
-        current = tuple(queue.pop())
+        current = queue.pop()
         if current in done:
             continue
         proxy = peerproxy.PeerProxy(current)
@@ -17,7 +17,9 @@ def trace(host, port):
             response = proxy.do.X_getinfo()
             done[current] = response
             for newpeer in response["peers"]:
-                queue.append(tuple(newpeer))
+                # XML-RPC converts tuples to lists, so need to convert back
+                newpeer_tuple = tuple(newpeer)
+                queue.append(newpeer_tuple)
         except IOError:
             print("Error accessing: ", current)
     return done
