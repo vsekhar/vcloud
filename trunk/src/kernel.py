@@ -1,6 +1,7 @@
 import subprocess
 from queue import Empty as QueueEmpty
 import threading
+import time
 
 goodresponse = "Done."
 
@@ -13,6 +14,9 @@ class KernelHandler:
                                      shell=True)
         self.inqueue = inqueue
         self.outqueue = outqueue
+        
+        self.heartbeat_lock = threading.RLock()
+        self.heartbeat_time = time.time()
         
         self.kernel_thread = threading.Thread(target=self.run, name="KernelThread")
         self.kernel_thread.setDaemon(True)
@@ -84,6 +88,14 @@ class KernelHandler:
     
     def quit(self):
         self._write('quit\n')
+        
+    def heartbeat(self):
+        with self.heartbeat_lock:
+            self.heartbeat_time = time.time()
+    
+    def get_heartbeat_time(self):
+        with self.heartbeat_lock:
+            return self.heartbeat_time
     
     def run(self):
         self.go = True
@@ -95,7 +107,9 @@ class KernelHandler:
             self.sort()
             self.advance()
             self.exportorgs()
+            self.heartbeat()
             count = count + 1
-            if count % 25 == 0:
-                print(self.stats())
+            if count % 50 == 0:
+                pass
+                #print(self.stats())
         self.quit()
