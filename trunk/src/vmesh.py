@@ -23,7 +23,7 @@ def main(argv):
         firstpeer = None
 
     mykernel = kernel.KernelHandler(executable, inqueue, outqueue)
-    mypeermanager = peermanager.PeerManager((HOST,PORT), inqueue, outqueue, firstpeer)
+    mypeermanager = peermanager.PeerManager((HOST,PORT), inqueue, outqueue, mykernel.get_heartbeat_time, firstpeer)
     print("Listening on " + mypeermanager.address + " : " + str(mypeermanager.port))
     
     try:
