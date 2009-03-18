@@ -16,10 +16,13 @@ peer_max_errors = 3
 peers_to_maintain = 3
 
 class Peer:
-    def __init__(self, addr_port, time=time.time(), errors=0):
+    def __init__(self, addr_port, t=time.time(), errors=0):
         self.addr_port = addr_port
-        self.time = time
+        self.time = t
         self.errors = errors
+        
+    def __repr__(self):
+        return "P"+str(self.addr_port)+"t"+str(time.time()-self.time)+"e"+str(self.errors)
     
     def error(self):
         self.errors = self.errors + 1
@@ -65,24 +68,23 @@ class Sender:
             org = self.outqueue.get() #blocking
             while True:
                 try:
-                    peer = self.manager.getpeer() #blocking
-                    proxy = peerproxy.PeerProxy(peer.addr_port)
+                    peer = self.manager.random_peer() #blocking
+                    proxy = peerproxy.PeerProxy(peer)
                     if proxy.do.X_message(org, self.manager.port):
-                        peer.ok()
+                        self.manager.peer_ok(peer)
                         break
                 except IOError:
-                    peer.error()
+                    self.manager.peer_error(peer)
                     self.outqueue.put(org)
-                finally:
-                    self.manager.returnpeer(peer)
 
 class PeerManager:
-    def __init__(self, addr_port, inqueue, outqueue, first_peer=None):
+    def __init__(self, addr_port, inqueue, outqueue, heartbeat_func, first_peer=None):
         self.connections = dict()
         self.aware = dict()
         self.lock = threading.RLock()
         self.inqueue = inqueue
         self.outqueue = outqueue
+        self.heartbeat_func = heartbeat_func
         self.id = random.random()
         
         # XML RPC Server
@@ -143,35 +145,42 @@ class PeerManager:
     
     def _join(self, id, addr_port):
         if id == self.id:
-            print("Selfing out")
+            print("ERROR: Selfing out (should never happen, check IP vs. domain names)")
             return "SELF"
         host, port = addr_port
         with self.lock:
             if addr_port in self.connections:
-                print("Joining: " + host + ":" + str(port))
+                print("WARNING: Accepting *re-join* from: ", addr_port)
                 return "OK"
             elif len(self.connections) < peers_to_maintain:
                 self.connections[addr_port] = Peer(addr_port)
-                print("Joining: " + host + ":" + str(port))
+                print("Accepting new peer: ", addr_port)
                 return "OK"
             else:
                 self.aware[addr_port] = Peer(addr_port)
                 return "NO"
     
-    def returnpeer(self, peer):
-        "Puts a peer back into the connections list"
-        with self.lock:
-            self.connections[peer.addr_port] = peer
+    def peer_error(self, addr_port):
+        try:
+            with self.lock:
+                self.connections[addr_port].error()
+        except KeyError:
+            pass
     
-    def getpeer(self):
+    def peer_ok(self, addr_port):
+        try:
+            with self.lock:
+                self.connections[addr_port].ok()
+        except KeyError:
+            pass
+    
+    def random_peer(self):
         "Gets a peer from the connections list, blocks until there is one"
         while True:
-            try:
-                with self.lock:
-                    k,v = self.connections.popitem()
-                return v
-            except KeyError:
-                pass
+            with self.lock:
+                keys = list(self.connections.keys())
+            if len(keys):
+                return random.choice(keys)
             time.sleep(random.random() / 2.0)
     
     def _getpeers(self):
@@ -196,9 +205,11 @@ class PeerManager:
                 # kill dead connections
                 for key in list(self.connections.keys()):
                     if self.connections[key].timedout():
+                        print("Timeout: ", self.connections[key])
                         self.aware[key] = self.connections[key]
                         del self.connections[key]
                     elif self.connections[key].erroredout():
+                        print("Errored out: ", self.connections[key])
                         del self.connections[key]
                 
                 # kill dead awares
@@ -209,7 +220,6 @@ class PeerManager:
             time.sleep(random.random())
             
     def resupply_from_aware(self):
-
         # Get awares, filter out those already connected
         with self.lock:
             awares = set(self.aware.keys())
@@ -220,7 +230,7 @@ class PeerManager:
         for addr_port in delawares:
             with self.lock:
                 del self.aware[addr_port]
-
+        
         # try to join, return on first successful join
         for addr_port in newawares:
             proxy = peerproxy.PeerProxy(addr_port)
@@ -232,9 +242,11 @@ class PeerManager:
                     # and remove from aware list
                     with self.lock:
                         self.connections[addr_port] = self.aware[addr_port]
+                        self.connections[addr_port].ok()
                         del self.aware[addr_port]
                     return
                 elif response == "SELF":
+                    print("ERROR: self'd out when attempting to join: ", addr_port)
                     with self.lock:
                         del self.aware[addr_port]
                 else:
@@ -242,29 +254,38 @@ class PeerManager:
                     # NB: this is not a peer error, nor a reason to remove
                     #     the peer from the aware list
                     pass
+
             except IOError:
                 with self.lock:
-                    self.aware[addr_port].error()                    
+                    self.aware[addr_port].error()
                 
     def resupply_from_connections(self):
         with self.lock:
-            try:
-                addr_port, peer = self.connections.popitem()
-            except KeyError:
-                return
+            keys = list(self.connections.keys())
+        if not len(keys):
+            return
+        addr_port = random.choice(keys)
         proxy = peerproxy.PeerProxy(addr_port)
         try:
             peers = proxy.do.X_getpeers(self.port)
-            peer.ok()
             for newpeer in peers:
                 newpeer_tuple = tuple(newpeer)
                 with self.lock:
                     self.aware[newpeer_tuple] = Peer(newpeer_tuple)
+
+            # Mark ok, and ignore if connection was killed
+            try:
+                with self.lock:
+                    self.connections[addr_port].ok()
+            except KeyError:
+                pass
         except IOError:
-            peer.error()
-        finally:
-            with self.lock:
-                self.connections[addr_port] = peer
+            # Mark error, and ignore if connection was killed
+            try:
+                with self.lock:
+                    self.connections[addr_port].error()
+            except KeyError:
+                pass
                 
     def resupply_loop(self):
         "Resupply connections list from awarelist and by asking other peers"
@@ -282,7 +303,6 @@ class PeerManager:
     def X_message(self, msg, port, host):
         if self.acceptable((host, port)):
             self.inqueue.put(msg)
-            # print("Getting msg from: " + host + ":" + str(port))
             return True
         else:
             return False
@@ -302,5 +322,6 @@ class PeerManager:
         ret["inqueue_size"] = self.inqueue.qsize()
         ret["connections"] = list(self._getconnections())
         ret["awares"] = list(self._getawares())
+        ret["heartbeat_age"] = time.time() - self.heartbeat_func()
         return ret
     
