@@ -161,6 +161,8 @@ class PeerManager:
                 return "NO"
     
     def peer_error(self, addr_port):
+        """Report that an error was experienced connecting to a peer (ignore if
+        peer isn't currently connected"""
         try:
             with self.lock:
                 self.connections[addr_port].error()
@@ -168,6 +170,8 @@ class PeerManager:
             pass
     
     def peer_ok(self, addr_port):
+        """Report that a peer was accessed successfully (ignore if peer isn't
+        currently connected"""
         try:
             with self.lock:
                 self.connections[addr_port].ok()
@@ -201,6 +205,7 @@ class PeerManager:
     def kill_loop(self):
         "Kill connections that have timed-out or have too many errors"
         while not self.stop:
+            time.sleep(random.random())
             with self.lock:
                 # kill dead connections
                 for key in list(self.connections.keys()):
@@ -216,8 +221,6 @@ class PeerManager:
                 for key in list(self.aware.keys()):
                     if self.aware[key].erroredout():
                         del self.aware[key]
-
-            time.sleep(random.random())
             
     def resupply_from_aware(self):
         # Get awares, filter out those already connected
@@ -297,7 +300,7 @@ class PeerManager:
             time.sleep(random.random())
     
     #
-    # XML-RPC functions (called remotely)
+    # XML-RPC functions (called remotely, 'host' param is added by AddressedXMLRPCRequestHandler)
     #
     
     def X_message(self, msg, port, host):
