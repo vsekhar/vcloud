@@ -27,7 +27,9 @@ def trace(host, port):
                 newpeer_tuple = tuple(newpeer)
 
                 # add to queue if we haven't seen this peer before
-                if newpeer_tuple not in queue and newpeer_tuple not in done and newpeer_tuple not in error:
+                if (newpeer_tuple not in queue and
+                    newpeer_tuple not in done and
+                    newpeer_tuple not in error):
                     queue[newpeer_tuple] = 0
         
         except (IOError, socket.error):
