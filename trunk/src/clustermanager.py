@@ -30,7 +30,7 @@ def trace(host, port):
                 if newpeer_tuple not in queue and newpeer_tuple not in done and newpeer_tuple not in error:
                     queue[newpeer_tuple] = 0
         
-        except IOError:
+        except (IOError, socket.error):
             cur_errors = cur_errors + 1
             if cur_errors >= error_threshold:
                 # too many errors, so stash this host in the error set

@@ -73,7 +73,7 @@ class Sender:
                     if proxy.do.X_message(org, self.manager.port):
                         self.manager.peer_ok(peer)
                         break
-                except IOError:
+                except (IOError, socket.error):
                     self.manager.peer_error(peer)
                     self.outqueue.put(org)
 
@@ -258,7 +258,7 @@ class PeerManager:
                     #     the peer from the aware list
                     pass
 
-            except IOError:
+            except (IOError, socket.error):
                 with self.lock:
                     self.aware[addr_port].error()
                 
@@ -282,7 +282,7 @@ class PeerManager:
                     self.connections[addr_port].ok()
             except KeyError:
                 pass
-        except IOError:
+        except (IOError, socket.error):
             # Mark error, and ignore if connection was killed
             try:
                 with self.lock:
