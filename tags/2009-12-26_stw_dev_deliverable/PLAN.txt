@@ -1,0 +1,9 @@
+Planned changes for next release:
+---------------------------------
+Request a connection from peer-of-peers (try try again)
+Seek additional peers above first
+Soft limit for connections
+Periodic testing of peer list (and remove stale entries)
+Set limit via option (currently accepts option, doesn't do anything with it)
+Refactor PyMesh object for better separation of concerns
+Inclusion of tests, expanded and improved
