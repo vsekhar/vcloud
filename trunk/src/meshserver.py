@@ -24,9 +24,10 @@ class MeshServer(asyncore.dispatcher):
 
         asyncore.dispatcher.__init__(self)
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.addr = (options.map.bind_address, options.map.bind_port)
-        self.bind(self.addr)
-        self.address = self.socket.getsockname()
+        self.bind(self.requested_address)
+        self.address_port = self.socket.getsockname()
+        self.address = self.address_port[0]
+        self.port = self.address_port[1]
         self.listen(1)
         
         self.add_seeds(options.map.seeds)
@@ -57,8 +58,10 @@ class MeshServer(asyncore.dispatcher):
     def cancel(self):
         self.finished.set()
         peers.close_all()
-        self.loop_thread.join()
         self.handle_close()
+    
+    def join(self):
+        self.loop_thread.join()
     
     def handle_accept(self):
         if not self.finished.is_set():

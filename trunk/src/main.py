@@ -2,7 +2,7 @@
 Created on 2009-12-30
 '''
 import pymesh
-import peermaps
+import peermanager
 import options
 import traceback
 
@@ -11,17 +11,17 @@ from util.print import print_addresses
 def main():
     options.parse_cmd_line()
     p = pymesh.PyMesh()
-    print(p.server.address)
+    print(p.server.address_port)
     p.start()
     
     # server command loop
     while 1:
-        command = input('>>> ')
-        command = command.strip()
         try:
+            command = input('>>> ')
+            command = command.strip()
+
             if command == 'x':
-                p.cancel()
-                exit(0)
+                break
                 
             # print list of connections
             elif command == 'c':
@@ -37,6 +37,10 @@ def main():
                       % (len(peermaps.socket_map), options.map.connections))
                 print('Peers: %s' % len(peermaps.peer_map))
             
+            # reset connections
+            elif command == 'r':
+                peermanager.peers.close_all()
+            
             # no-op
             elif command == '':
                 pass
@@ -44,8 +48,14 @@ def main():
             # unknown command
             else:
                 print('Unknown command')
+
+        except KeyboardInterrupt:
+            break
         except Exception:
             traceback.print_exc()
+    
+    p.cancel()
+    p.join()
 
 
 if __name__ == '__main__':

@@ -14,39 +14,46 @@ class CommandError(Exception):
     pass
 
 class ConnectionHandler(async_chat):
-    def __init__(self, addr, peermanager, server, direction, sock=None, timestamp=None):
+    def __init__(self, peermanager, server, direction, sock, timestamp=None):
         async_chat.__init__(self, sock=sock)
-        self.set_terminator(COMMAND_TERMINATOR)
         
-        self.addr = addr
-        self.remote_server_port = None
+        self.address_port = self.socket.getpeername()
+        self.address = self.address_port[0]
+        self.port = self.address_port[1]
+
         self.server = server
-        self.local_server_port = self.server.address[1]
-        self.direction = direction
-        if not sock:
-            print("warning: ConnectionHandler received None socket, opening a new one")
-            self.connect(self.addr)
+        self.local_server_port = self.server.port
+
         self.peermanager = peermanager
-        self.ibuffer = []
-        if timestamp:
+
+        if timestamp is not None:
             self.timestamp = timestamp
         else:
             self.update_timestamp()
         
+        self.set_terminator(COMMAND_TERMINATOR)
         self.message_length = 0
+        self.message_command = None
+        self.ibuffer = []
         
+        self.direction = direction
         if self.direction == 'out':
             # we must have connected to the remote server port
-            self.remote_server_port = self.addr[1]
+            self.remote_server_port = self.port
 
             # send the local server port
             port_msg = 'z %s\n' % self.local_server_port
             if options.map.verbose > 1:
-                print('sending server port to (%s:%s): %s' % (self.addr[0], self.addr[1], port_msg))
+                print('sending server port to (%s:%s): %s' % (self.address, self.port, port_msg))
             self.push(port_msg.encode('ascii'))
             
-            # remove from peer list (since it is now in the connection list)
-            self.peermanager.del_peer(self.addr)
+        elif self.direction == 'in':
+            self.remote_server_port = None
+            
+        else:
+            raise RuntimeError("bad socket direction: %s" % self.direction)
+        # remove from peer list (since it is now in the connection list)
+        self.peermanager.del_peer(self.address_port)
     
     def collect_incoming_data(self, data):
         self.ibuffer.append(data)
@@ -57,39 +64,66 @@ class ConnectionHandler(async_chat):
         try:
 
             ####################################
-            # Try to process as a binary message
+            # Process variable-length messages
             ####################################
             bytes = b''.join(self.ibuffer).strip()
             self.ibuffer = []
-            if self.message_length > 0:
-                len_bytes = len(bytes)
-                if len_bytes != self.message_length:
-                    raise AssertionError("mismatched message lengths: %d expected, %d received" %
-                                         (self.message_length, len_bytes))
-                if options.map.verbose > 1:
-                    print('kernel message complete, %d bytes' % self.message_length)
-                self.set_terminator(COMMAND_TERMINATOR)
-                self.message_length = 0
+            if self.message_length > 0 and self.message_command is not None:
+                try:
+                    len_bytes = len(bytes)
+                    if len_bytes != self.message_length:
+                        raise AssertionError("mismatched data lengths: %d expected, %d received" %
+                                             (self.message_length, len_bytes))
+                    if options.map.verbose > 1:
+                        print('variable-length message complete, %d bytes' % self.message_length)
+                    
+                    # handle based on what command the message is tied to
+                    if self.message_command == 'm':
+                        self.server.inqueue.put(bytes)
+                        return
+                    elif self.message_command == 's':
+                        print("Stats from (%s:%s):" % self.address_port)
+                        print(bytes.decode('ascii'))
+                        return
                 
-                # Maybe do some validation? if kernels implement this?
-                # if not kernel.validate_msg(data):
-                #    raise CommandError('Bad message from %s: %s' % (self.addr, data))
+                finally:
+                    # get ready to receive a command
+                    self.set_terminator(COMMAND_TERMINATOR)
+                    self.message_length = 0
+                    self.message_command = None
 
-                self.server.inqueue.put(bytes)
-                return
-
-            ##################################################
-            # Else, try to process as an ascii command/message
-            ##################################################
+            ########################################
+            # Else, try to process one-line messages
+            ########################################
             text = bytes.decode('ascii')
             command = text[:1]
             message = text[2:]
-            if options.map.verbose and self.message_length == 0:
-                print('msg from (%s:%s): %s' % (self.addr[0], self.addr[1], text))
+            if options.map.verbose > 1 and self.message_length == 0:
+                print('msg from (%s:%s): %s' % (self.address, self.port, text))
 
+            # Other peer sent a variable-length message, so setup to receive
+            if (command == 'm'  # kernel message
+                or command == 'r' # stats response
+                ):
+                try:
+                    length = int(message)
+                except ValueError:
+                    self.message_length = 0 # just in case
+                    self.message_command = None
+                    self.set_terminator(COMMAND_TERMINATOR) 
+                    raise CommandError("Bad msg length: %s" % message)
+                else:
+                    if length > MAX_MSG_LEN:
+                        raise CommandError("msg too long: size=%d (max=%d)" % (length, MAX_MSG_LEN))
+                    self.set_terminator(length)
+                    self.message_length = length
+                    self.message_command = command
+                    if options.map.verbose > 1:
+                        print("variable-length message (%d bytes) starting" % self.message_length)
+                
             # Other peer requested peers list
-            if command == 'p':
-                excl_addr = (self.addr[0], self.remote_server_port)
+            elif command == 'p':
+                excl_addr = (self.address, self.remote_server_port)
                 lst = self.peermanager.get_peers_and_connections(excl_addr)
                 if lst is None:
                     lst_str = '[]'
@@ -111,30 +145,13 @@ class ConnectionHandler(async_chat):
                 except TypeError:
                     raise CommandError('Bad peer list: %s' % message)
             
-            # Other peer sent a kernel message, so setup to receive binary
-            elif command == 'm':
-                try:
-                    self.message_length = int(message)
-                except ValueError:
-                    self.message_length = 0 # just in case
-                    self.set_terminator(COMMAND_TERMINATOR) # just in case
-                    raise CommandError('Bad msg length: %s' % message)
-                else:
-                    self.set_terminator(self.message_length)
-                    if options.map.verbose > 1:
-                        print('kernel message of length %d starting' % self.message_length)
-                
             # Other peer or administrator requested statistics
             elif command == 's':
                 stats = 'r ' + self.server.get_stats() + '\n'
                 if options.map.verbose > 1:
                     print('request for stats')
                 self.push(stats.encode('ascii'))
-            
-            # Other peerdebug sent statistics (not implemented)
-            elif command == 'r':
-                pass
-            
+                        
             # Other peer sent its server port
             elif command == 'z':
                 try:
@@ -148,7 +165,7 @@ class ConnectionHandler(async_chat):
                     self.remote_server_port = new_port
                     if options.map.verbose > 1:
                         print('received server port %s' % new_port)
-                    self.peermanager.del_peer((self.addr[0], self.remote_server_port))
+                    self.peermanager.del_peer((self.address, self.remote_server_port))
                         
             # Other peer notified of disconnection
             elif command == 'd':
@@ -178,7 +195,7 @@ class ConnectionHandler(async_chat):
 
         # Command error, kill the connection (is this too extreme?)
         except CommandError as err:
-            print('CommandError from %s: %s' % (self.addr, err))
+            print('CommandError from %s: %s' % (self.address_port, err))
             self.close_when_done()
     
     def update_timestamp(self):
@@ -188,11 +205,13 @@ class ConnectionHandler(async_chat):
     ''' Overrides to handle the peer_map and the time stamp '''
     def del_channel(self):
         "Delete channel from active sockets map, and it move to peers list"
-        if self.direction == 'in' and self.remote_server_port:
-            peer_server = (self.addr[0], self.remote_server_port)
+        if self.direction == 'in' and self.remote_server_port is not None:
+            peer_server = (self.address, self.remote_server_port)
             self.peermanager.add_peer(peer_server, self.timestamp)
         elif self.direction == 'out':
-            self.peermanager.add_peer(self.addr, self.timestamp)
+            self.peermanager.add_peer(self.address_port, self.timestamp)
+        else:
+            print("warning: no remote server port, peer dropped (%s:%s)" % self.address_port)
         return async_chat.del_channel(self)
 
     def handle_write(self):
@@ -202,5 +221,5 @@ class ConnectionHandler(async_chat):
     
     def handle_close(self):
         if options.map.verbose:
-            print('closing connection to %s:%s' % (self.addr[0], self.remote_server_port))
+            print('closing connection to %s:%s' % (self.address, self.remote_server_port))
         async_chat.handle_close(self)

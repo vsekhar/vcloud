@@ -25,14 +25,18 @@ class BaseKernel(object):
         waits for the kernel to finish naturally, which may or may not ever happen'''
         raise NotImplementedError("must be implemented in subclass")
     
-    def get_message: return get_messages(self)[0]
+    def get_message():
+        return get_messages(self)[0]
+    
     def get_messages(self, max_n=1):
         '''returns at most max_n=1 kernel messages as a list
         Must not block. Must be thread-safe. Kernel messages are sent by vmesh
         as-is over a socket as binary data, with no encoding applied'''
         raise NotImplementedError("must be implemented in subclass")
     
-    def put_message(self, msg): return put_messages([msg])
+    def put_message(self, msg):
+        return put_messages([msg])
+    
     def put_messages(self, msgs):
         '''applies received kernel messages to the kernel, returns number processed
         Must not block. Must be thread-safe. msgs must be a list of messages.

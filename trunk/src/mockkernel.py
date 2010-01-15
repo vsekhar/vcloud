@@ -4,6 +4,7 @@
 import threading
 import queue
 import options
+import basekernel
 
 from random import choice
 from util.repeattimer import RepeatTimer
@@ -51,7 +52,7 @@ class OutgoingTimer(RepeatTimer):
             random_text = ''.join([choice(LETTERS + DIGITS) for _ in range(8)])
             self.kernel.outqueue.put(random_text.encode('ascii'))
 
-class Kernel(object):
+class Kernel(basekernel.BaseKernel):
     """Receives messages and returns messages. A placeholder for interaction
     with a data consumer/producer."""
 
@@ -78,3 +79,19 @@ class Kernel(object):
     def join(self):
         self.get_outgoing_timer.join()
         self.handle_incoming_thread.join()
+
+    def get_messages(self, max_n=1):
+        ret = []
+        try:
+            for _ in range(max_n):
+                ret.append(self.outqueue.get_nowait())
+        except queue.Empty:
+            pass
+        return ret
+    
+    def put_messages(self, msgs):
+        count = 0
+        for msg in msgs:
+            self.inqueue.put(msg)
+            ++count
+        return count        

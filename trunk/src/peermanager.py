@@ -39,12 +39,15 @@ class PeerManager():
         already know about, and moving up timestamps where appropriate for peers
         we do already know about"""
         
+        if len(peers_dict) == 0:
+            return # prevent unnecessary lock acquisitions
+
         with self.sockets_lock:
             socket_addresses = [(i.addr[0], i.remote_server_port)
                                 for i in self.sockets.values() if i.connected]
         with self.peers_lock:
             now = datetime.datetime.utcnow()
-            for (k,delta) in dict.items():
+            for (k,delta) in peers_dict.items():
                 
                 # if we have better information (by being directly connected
                 # to the peer in question) or if the information we got is stale
@@ -60,7 +63,7 @@ class PeerManager():
                     new_timestamp = max(self.peers[k], now - delta)
                 except KeyError:
                     new_timestamp = now - delta
-                finally:
+                else:
                     self.peers[k] = new_timestamp
 
     def get_peers(self):
@@ -112,7 +115,7 @@ class PeerManager():
         with self.sockets_lock:
             if options.map.verbose:
                 print('accepting connection from (%s:%s)' % addr)
-            ConnectionHandler(sock=sock, addr=addr,
+            ConnectionHandler(sock=sock,
                               peermanager=self,
                               server=server,
                               direction='in')
@@ -142,7 +145,7 @@ class PeerManager():
                     if options.map.verbose:
                         print('Making connection (%s:%s)' % addr)
                     with self.sockets_lock:
-                        ConnectionHandler(sock=sock, addr=addr,
+                        ConnectionHandler(sock=sock,
                                           peermanager=self,
                                           server=server,
                                           direction='out')
@@ -195,14 +198,14 @@ class PeerManager():
             for addr in to_delete.keys():
                 del self.peers[addr]
 
-    def close_all(self):
+    def close_all(self, listening_sockets_as_well=False):
         with self.sockets_lock:
             l = list(self.sockets.values())
             for i in l:
                 try:
                     i.close_when_done()
                 except AttributeError:
-                    # in case we get the listening socket (asyncore)
-                    i.close()
+                    if listening_sockets_as_well:
+                        i.close()
     
 peers = PeerManager()

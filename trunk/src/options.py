@@ -16,7 +16,7 @@ def get_option_parser():
     
     parser.add_option('-p', '--bind_port', dest='bind_port',
                       help='bind local server to given port (default=OS-determined)',
-                      type='int', default='0')
+                      type='int', default=0)
     
     parser.add_option('-s', '--seed', dest='seeds',
                       action='append', default = [],
@@ -24,11 +24,11 @@ def get_option_parser():
     
     parser.add_option('-c', '--connections', dest='connections',
                       help='number of connections to try to maintain (default=3)',
-                      type='int', default='3')
+                      type='int', default=3)
     
     parser.add_option('-n', '--peers', dest='peers',
                       help='max number of peers to track (default=30)',
-                      type='int', default='30')
+                      type='int', default=30)
     
     parser.add_option('-v', '--verbose', dest='verbose',
                       help='set verbose mode (more output, -vv for even more)',

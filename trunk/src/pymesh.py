@@ -29,3 +29,7 @@ class PyMesh(object):
     def cancel(self):
         self.kernel.cancel()
         self.server.cancel()
+        
+    def join(self):
+        self.kernel.join()
+        self.server.join()
