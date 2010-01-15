@@ -79,12 +79,18 @@ class ConnectionHandler(async_chat):
                     
                     # handle based on what command the message is tied to
                     if self.message_command == 'm':
+                        # enqueue raw bytes
                         self.server.inqueue.put(bytes)
                         return
                     elif self.message_command == 's':
+                        # decode and print
                         print("Stats from (%s:%s):" % self.address_port)
                         print(bytes.decode('ascii'))
                         return
+                    else:
+                        raise CommandError(
+                            "variable-length message had bad command: %s"
+                            % self.message_command)
                 
                 finally:
                     # get ready to receive a command
@@ -217,6 +223,11 @@ class ConnectionHandler(async_chat):
     def handle_write(self):
         "Handle a write event and update the timestamp"
         async_chat.handle_write(self)
+        self.update_timestamp()
+    
+    def handle_read(self):
+        "Handle a read event and update the timestamp"
+        async_chat.handle_read()
         self.update_timestamp()
     
     def handle_close(self):
