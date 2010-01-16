@@ -73,19 +73,11 @@ class PeerManager():
     def get_connections(self, excl_addr):
         "returns a list of sockets as (remote_addr, remote_server_port)"
         with self.sockets_lock:
-            l = []
-            for socket in self.sockets.values():                
-                if not socket.connected:
-                    continue
-                try:
-                    if socket.remote_server_port is not None:
-                        addr = (socket.addr[0], socket.remote_server_port)
-                    else:
-                        raise ValueError
-                except (AttributeError, ValueError):
-                    addr = socket.addr
-                if addr != excl_addr:
-                    l.append((addr, socket.timestamp))
+            l = [((socket.addr[0], socket.remote_server_port), socket.timestamp)
+                    for socket in self.sockets.values()
+                    if socket.connected
+                    and socket.remote_server_port is not None
+                    and (socket.addr[0], socket.remote_server_port) != excl_addr]
             return self.make_deltas(dict(l))
     
     def get_random_connection(self):
@@ -174,15 +166,13 @@ class PeerManager():
     
     def pop_oldest_peer(self):
         with self.peers_lock:
-            peer = (None, datetime.datetime.utcnow())
-            for (addr,timestamp) in self.peers.items():
-                if timestamp < peer[1]:
-                    peer = (addr,timestamp)
-            if peer[0] is not None:
-                del self.peers[addr]
-                return peer
-            else:
+            try:
+                peer = min(self.peers.items(), key=lambda x:x[1])
+            except ValueError:
                 raise Empty
+            else:
+                del self.peers[peer[0]]
+                return peer
     
     def cull_peers(self, n):
         """Remove peer entries, starting from the oldest, until we have at most
