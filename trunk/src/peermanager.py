@@ -63,8 +63,7 @@ class PeerManager():
                     new_timestamp = max(self.peers[k], now - delta)
                 except KeyError:
                     new_timestamp = now - delta
-                else:
-                    self.peers[k] = new_timestamp
+                self.peers[k] = new_timestamp
 
     def get_peers(self):
         "returns a list of peers as (remote_addr, remote_server_port)"
@@ -75,18 +74,33 @@ class PeerManager():
         "returns a list of sockets as (remote_addr, remote_server_port)"
         with self.sockets_lock:
             l = []
-            for socket in self.sockets.values():
-                # grab the server ports
-                if socket.connected and socket.remote_server_port:
-                    addr = (socket.addr[0], socket.remote_server_port)
-                    if addr != excl_addr:
-                        l.append((addr, socket.timestamp))
+            for socket in self.sockets.values():                
+                if not socket.connected:
+                    continue
+                try:
+                    if socket.remote_server_port is not None:
+                        addr = (socket.addr[0], socket.remote_server_port)
+                    else:
+                        raise ValueError
+                except (AttributeError, ValueError):
+                    addr = socket.addr
+                if addr != excl_addr:
+                    l.append((addr, socket.timestamp))
             return self.make_deltas(dict(l))
     
     def get_random_connection(self):
+        return self.get_random_connection_list(1)[0]
+
+    def get_random_connection_list(self, n=1):
         with self.sockets_lock:
             l = [i for i in self.sockets.values() if i.connected]
-            return random.choice(l)
+            r = []
+            try:
+                for _ in range(n):
+                    r.append(random.choice(l))
+            except IndexError:
+                pass
+            return r
     
     def get_peers_and_connections(self, excl_addr):
         return merge_dict(self.get_peers(), self.get_connections(excl_addr))

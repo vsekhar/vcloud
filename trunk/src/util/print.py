@@ -7,6 +7,8 @@ def print_addresses(addresses):
     prints them'''
     if len(addresses):
         a,p = addresses[0]
-        print('%s:%s' % (a,p)) 
+        print('%s:%s' % (a,p))
         for (addr, port) in addresses[1:]:
             print(', %s:%s' % (addr, port))
+    else:
+        print("[]")

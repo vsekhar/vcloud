@@ -80,7 +80,7 @@ class ConnectionHandler(async_chat):
                     # handle based on what command the message is tied to
                     if self.message_command == 'm':
                         # enqueue raw bytes
-                        self.server.inqueue.put(bytes)
+                        self.server.handle_incoming_message(bytes)
                         return
                     elif self.message_command == 's':
                         # decode and print
@@ -144,7 +144,7 @@ class ConnectionHandler(async_chat):
             ## e.g. {('127.0.0.1', 54216): datetime.timedelta(0, 2, 467959)}
             elif command == 'l':
                 if options.map.verbose > 1:
-                    print('list received')
+                    print('list received: %s' % message)
 
                 try:
                     self.peermanager.update_peers(eval(message))
@@ -227,7 +227,7 @@ class ConnectionHandler(async_chat):
     
     def handle_read(self):
         "Handle a read event and update the timestamp"
-        async_chat.handle_read()
+        async_chat.handle_read(self)
         self.update_timestamp()
     
     def handle_close(self):

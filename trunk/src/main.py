@@ -1,18 +1,21 @@
 '''
 Created on 2009-12-30
 '''
-import pymesh
-import peermanager
+import vmesh
 import options
 import traceback
+import mockkernel
 
 from util.print import print_addresses
+from peermanager import peers
 
 def main():
     options.parse_cmd_line()
-    p = pymesh.PyMesh()
-    print(p.server.address_port)
-    p.start()
+
+    k = mockkernel.Kernel('mockkernel')
+    v = vmesh.VMesh(k)
+    print(v.address_port)
+    v.start()
     
     # server command loop
     while 1:
@@ -25,21 +28,21 @@ def main():
                 
             # print list of connections
             elif command == 'c':
-                print_addresses(peermaps.get_connections(None))
+                print_addresses(peers.get_connections(None))
             
             # print list of peers
             elif command == 'p':
-                print_addresses(peermaps.get_peers())
+                print_addresses(peers.get_peers())
             
             # print stats
             elif command == 's':
                 print('Connections: %s (target: %s)'
-                      % (len(peermaps.socket_map), options.map.connections))
-                print('Peers: %s' % len(peermaps.peer_map))
+                      % (len(peers.socket_map), options.map.connections))
+                print('Peers: %s' % len(peers.peer_map))
             
             # reset connections
             elif command == 'r':
-                peermanager.peers.close_all()
+                peers.close_all()
             
             # no-op
             elif command == '':
@@ -54,8 +57,8 @@ def main():
         except Exception:
             traceback.print_exc()
     
-    p.cancel()
-    p.join()
+    v.cancel()
+    v.join()
 
 
 if __name__ == '__main__':

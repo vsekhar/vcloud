@@ -24,7 +24,7 @@ class IncomingThread(threading.Thread):
         """Processes pending messages in the inqueue."""
         while 1:
             try:
-                msg = self.kernel.inqueue.get()
+                msg = self.kernel._inqueue.get()
                 if msg is None:
                     return
                 if options.map.verbose > 1:
@@ -36,7 +36,7 @@ class IncomingThread(threading.Thread):
         # processing messages is fast (just prints) so we can use a None message
         # as a cancel notifier. if a kernel takes time to process messages,
         # an event loop should check an Event() object for cancellation periodically
-        self.kernel.inqueue.put(None)
+        self.kernel._inqueue.put(None)
 
 class OutgoingTimer(RepeatTimer):
     def __init__(self, interval, kernel):
@@ -50,17 +50,16 @@ class OutgoingTimer(RepeatTimer):
         calculation."""
         for _ in range(n):
             random_text = ''.join([choice(LETTERS + DIGITS) for _ in range(8)])
-            self.kernel.outqueue.put(random_text.encode('ascii'))
+            self.kernel._outqueue.put(random_text.encode('ascii'))
 
 class Kernel(basekernel.BaseKernel):
     """Receives messages and returns messages. A placeholder for interaction
     with a data consumer/producer."""
 
-    def __init__(self, name, inqueue, outqueue,
-                 send_interval=None):
+    def __init__(self, name, send_interval=None):
         self.name = name
-        self.inqueue = inqueue
-        self.outqueue = outqueue
+        self._inqueue = queue.Queue()
+        self._outqueue = queue.Queue()
         if send_interval is not None:
             self.send_interval = send_interval
         else:
@@ -82,9 +81,12 @@ class Kernel(basekernel.BaseKernel):
 
     def get_messages(self, max_n=1):
         ret = []
+        count = 0
         try:
-            for _ in range(max_n):
-                ret.append(self.outqueue.get_nowait())
+            while 1:
+                ret.append(self._outqueue.get_nowait())
+                if max_n is not None and count >= max_n:
+                    break
         except queue.Empty:
             pass
         return ret
@@ -92,6 +94,6 @@ class Kernel(basekernel.BaseKernel):
     def put_messages(self, msgs):
         count = 0
         for msg in msgs:
-            self.inqueue.put(msg)
+            self._inqueue.put(msg)
             ++count
         return count        
