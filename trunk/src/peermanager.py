@@ -94,13 +94,11 @@ class PeerManager():
     def get_random_connection_list(self, n=1):
         with self.sockets_lock:
             l = [i for i in self.sockets.values() if i.connected]
-            r = []
-            try:
-                for _ in range(n):
-                    r.append(random.choice(l))
-            except IndexError:
-                pass
-            return r
+        try:
+            return [random.choice(l) for _ in range(n)]
+        except IndexError:
+            # empty source list, so return empty random list
+            return []
     
     def get_peers_and_connections(self, excl_addr):
         return merge_dict(self.get_peers(), self.get_connections(excl_addr))
