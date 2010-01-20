@@ -43,7 +43,7 @@ class ConnectionHandler(async_chat):
 
             # send the local server port
             port_msg = 'z %s\n' % self.local_server_port
-            if options.map.verbose > 1:
+            if options.map.verbose > 2:
                 print('sending server port to (%s:%s): %s' % (self.address, self.port, port_msg))
             self.push(port_msg.encode('ascii'))
             
@@ -74,7 +74,7 @@ class ConnectionHandler(async_chat):
                     if len_bytes != self.message_length:
                         raise AssertionError("mismatched data lengths: %d expected, %d received" %
                                              (self.message_length, len_bytes))
-                    if options.map.verbose > 1:
+                    if options.map.verbose > 2:
                         print('variable-length message complete, %d bytes' % self.message_length)
                     
                     # handle based on what command the message is tied to
@@ -124,7 +124,7 @@ class ConnectionHandler(async_chat):
                     self.set_terminator(length)
                     self.message_length = length
                     self.message_command = command
-                    if options.map.verbose > 1:
+                    if options.map.verbose > 2:
                         print("variable-length message (%d bytes) starting" % self.message_length)
                 
             # Other peer requested peers list
