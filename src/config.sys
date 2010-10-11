@@ -5,9 +5,10 @@ bind_port=0
 seeds=['127.0.0.1:1']
 peers=30
 peer_timeout=30
-verbosity=1
+verbosity=2
 kernel=libvgp
 kernel_path=../../cvgp/Release
+kernel_greeting=hello from libvgp
 
 [libvgp]
 param=1

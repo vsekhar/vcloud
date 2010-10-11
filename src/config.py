@@ -24,6 +24,7 @@ def read_config(filename):
 
 	d1['kernel'] = config.get('vmesh', 'kernel')
 	d1['kernel_path'] = config.get('vmesh', 'kernel_path')
+	d1['kernel_greeting'] = config.get('vmesh', 'kernel_greeting')
 	
 	# kernel
 	d2 = dict(config.items(d1['kernel']))
