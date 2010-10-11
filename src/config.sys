@@ -1,0 +1,14 @@
+[vmesh]
+connections=3
+bind_address=
+bind_port=0
+seeds=['127.0.0.1:1']
+peers=30
+peer_timeout=30
+verbosity=1
+kernel=libvgp
+kernel_path=../../cvgp/Release
+
+[libvgp]
+param=1
+
