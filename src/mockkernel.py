@@ -1,6 +1,3 @@
-# Written by Stephen Weber
-# stephen.t.weber@gmail.com
-
 import threading
 import queue
 import options
