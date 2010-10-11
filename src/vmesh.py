@@ -6,23 +6,24 @@ Asyncore/asynchat wrapped sockets, no threading
 
 import queue
 import datetime
-import options
 
 from threading import Thread, Event
-from peermanager import peers
+from peermanager import PeerManager
 from serversocket import ServerSocket
 
 class VMesh():
     
-    def __init__(self, kernel):
+    def __init__(self, kernel, vmconfig):
         self.kernel = kernel
-        self.server_socket = ServerSocket(options.map.bind_address, options.map.bind_port, self)
+        self.peercount = vmconfig['peers']
+        self.connections = vmconfig['connections']
+        self.peermgr = PeerManager(vmconfig['peer_timeout'], vmconfig['verbosity'])
+        self.server_socket = ServerSocket(vmconfig['bind_address'], vmconfig['bind_port'], self)
         self.address_port = self.server_socket.address_port
         self.address = self.address_port[0]
         self.port = self.address_port[1]
-        self.add_seeds(options.map.seeds)
+        self.add_seeds(vmconfig['seeds'])
         self.loop_thread = Thread(target=self.loop, name='MeshServer_loop')
-        self.finished = Event()
     
     def add_seeds(self, seeds):
         errors = []
@@ -33,7 +34,7 @@ class VMesh():
             except ValueError:
                 errors.append(seed)
                 continue
-            peers.add_peer((addr, port))
+            self.peermgr.add_peer((addr, port))
 
         if len(errors) > 0:
             err = 'Bad seeds: ' + errors[0]
@@ -47,8 +48,7 @@ class VMesh():
     
     def cancel(self):
         self.kernel.cancel()
-        self.finished.set()
-        peers.close_all()
+        self.peermgr.close_all()
         self.server_socket.handle_close()
     
     def join(self):
@@ -67,12 +67,12 @@ class VMesh():
         add_connection_timestamp = fetch_peers_timestamp
         cull_peers_timestamp = fetch_peers_timestamp
         
-        while peers.socket_count():
-            peers.poll_sockets(timeout=0)
+        while self.peermgr.socket_count():
+            self.peermgr.poll_sockets(timeout=0)
             
             # get and send all the msgs the kernel can give us
             msgs = self.kernel.get_messages(None)
-            connections = peers.get_random_connection_list(len(msgs))
+            connections = self.peermgr.get_random_connection_list(len(msgs))
             if len(connections) == 0:
                 # no connections
                 self.kernel.put_messages(msgs)
@@ -85,11 +85,12 @@ class VMesh():
             # perform peer maintenance tasks
             now = datetime.datetime.utcnow()
             if now - fetch_peers_timestamp > datetime.timedelta(seconds=5):
-                peers.fetch_peers(options.map.peers)
+                self.peermgr.fetch_peers(self.peercount)
                 fetch_peers_timestamp = now
             if now - add_connection_timestamp > datetime.timedelta(seconds=5):
-                peers.add_connection_from_peers(options.map.connections, server=self)
+                self.peermgr.add_connection_from_peers(self.connections, server=self)
                 add_connection_timestamp = now
             if now - cull_peers_timestamp > datetime.timedelta(seconds=5):
-                peers.cull_peers(round(options.map.peers * 0.9))
+                self.peermgr.cull_peers(round(self.peercount * 0.9))
                 cull_peers_timestamp = now
+

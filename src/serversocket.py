@@ -3,7 +3,6 @@ Created on 2010-01-16
 '''
 
 import asyncore
-from peermanager import peers
 
 class ServerSocket(asyncore.dispatcher):
     '''
@@ -17,6 +16,7 @@ class ServerSocket(asyncore.dispatcher):
         '''
         asyncore.dispatcher.__init__(self)
         self.mesh = mesh
+        self.peermgr = mesh.peermgr
         self.create_socket(asyncore.socket.AF_INET,
                            asyncore.socket.SOCK_STREAM)
         self.bind((bind_address, port))
@@ -28,7 +28,7 @@ class ServerSocket(asyncore.dispatcher):
     def handle_accept(self):
         (sock, addr) = self.accept()
         print('Received connection (%s:%s)' % (addr[0], addr[1]))
-        peers.accept_connection(sock=sock,
+        self.peermgr.accept_connection(sock=sock,
                                 addr=addr,
                                 server=self.mesh)
 

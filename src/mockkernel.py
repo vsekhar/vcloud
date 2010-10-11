@@ -1,6 +1,5 @@
 import threading
 import queue
-import options
 import basekernel
 
 from random import choice
@@ -24,7 +23,7 @@ class IncomingThread(threading.Thread):
                 msg = self.kernel._inqueue.get()
                 if msg is None:
                     return
-                if options.map.verbose > 1:
+                if self.kernel.verbosity > 1:
                     print("[%s] recv: %s" % (self.kernel.name,msg))
             except queue.Empty:
                 pass
@@ -50,47 +49,46 @@ class OutgoingTimer(RepeatTimer):
             self.kernel._outqueue.put(random_text.encode('ascii'))
 
 class Kernel(basekernel.BaseKernel):
-    """Receives messages and returns messages. A placeholder for interaction
-    with a data consumer/producer."""
+	"""Receives messages and returns messages. A placeholder for interaction
+	with a data consumer/producer."""
 
-    def __init__(self, name, send_interval=None):
-        self.name = name
-        self._inqueue = queue.Queue()
-        self._outqueue = queue.Queue()
-        if send_interval is not None:
-            self.send_interval = send_interval
-        else:
-            self.send_interval = SEND_INTERVAL
-        self.get_outgoing_timer = OutgoingTimer(self.send_interval, self)
-        self.handle_incoming_thread = IncomingThread(self)
+	def __init__(self, verbosity):
+		self.name = 'Mockkernel'
+		self._inqueue = queue.Queue()
+		self._outqueue = queue.Queue()
+		self.verbosity = verbosity
+		self.send_interval = SEND_INTERVAL
+		self.get_outgoing_timer = OutgoingTimer(self.send_interval, self)
+		self.handle_incoming_thread = IncomingThread(self)
     
-    def start(self):
-        self.get_outgoing_timer.start()
-        self.handle_incoming_thread.start()
-    
-    def cancel(self):
-        self.get_outgoing_timer.cancel()
-        self.handle_incoming_thread.cancel()
-    
-    def join(self):
-        self.get_outgoing_timer.join()
-        self.handle_incoming_thread.join()
+	def start(self):
+		self.get_outgoing_timer.start()
+		self.handle_incoming_thread.start()
 
-    def get_messages(self, max_n=1):
-        ret = []
-        count = 0
-        try:
-            while 1:
-                ret.append(self._outqueue.get_nowait())
-                if max_n is not None and count >= max_n:
-                    break
-        except queue.Empty:
-            pass
-        return ret
-    
-    def put_messages(self, msgs):
-        count = 0
-        for msg in msgs:
-            self._inqueue.put(msg)
-            ++count
-        return count        
+	def cancel(self):
+		self.get_outgoing_timer.cancel()
+		self.handle_incoming_thread.cancel()
+
+	def join(self):
+		self.get_outgoing_timer.join()
+		self.handle_incoming_thread.join()
+
+	def get_messages(self, max_n=1):
+		ret = []
+		count = 0
+		try:
+			while 1:
+				ret.append(self._outqueue.get_nowait())
+				if max_n is not None and count >= max_n:
+					break
+		except queue.Empty:
+			pass
+		return ret
+
+	def put_messages(self, msgs):
+		count = 0
+		for msg in msgs:
+			self._inqueue.put(msg)
+			++count
+		return count
+

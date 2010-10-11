@@ -26,9 +26,6 @@ def parse_cmd_line():
     global map, args
     parser = get_option_parser()
     map, args = parser.parse_args()
-    if map.verbose > 1:
-        print(map, args)
-
 
 # for testing, invoke from command line with '-v' to have it print the parse
 if __name__ == '__main__':
