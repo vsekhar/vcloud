@@ -46,7 +46,7 @@ class KernelRunner(Thread):
 		self.cancelevent.set()
 
 class Kernel(basekernel.BaseKernel):
-	def __init__(self, p, k, greeting):
+	def __init__(self, p, k, greeting, kernelconfig):
 
 		# dynamic kernel module
 		from sys import path
@@ -54,7 +54,8 @@ class Kernel(basekernel.BaseKernel):
 		path.insert(1,newpath)
 		__import__(k)
 		self.kmod = sys.modules[k]
-		assert(self.kmod.greet() == greeting)
+		assert(self.kmod.greet() == greeting)		# id the kernel
+		assert(self.kmod.initialize(kernelconfig))	# initialize it
 		
 		# management structures
 		self.inqueue = queue.Queue()

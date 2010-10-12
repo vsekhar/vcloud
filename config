@@ -16,5 +16,5 @@ kernel_greeting=hello from libvgp
 
 # kernel-specific params (section name must match kernel module name)
 [libvgp]
-param=1
+initparam=Ok
 

@@ -17,7 +17,7 @@ def main():
 	if vmconfig['verbosity'] > 1:
 		print(vmconfig, kconfig)
 
-	k = kernel.Kernel(vmconfig['kernel_path'], vmconfig['kernel'], vmconfig['kernel_greeting'])
+	k = kernel.Kernel(vmconfig['kernel_path'], vmconfig['kernel'], vmconfig['kernel_greeting'], kconfig)
 	# k = mockkernel.Kernel(vmconfig['verbosity'])
 	v = vmesh.VMesh(k, vmconfig)
 	print(v.address_port)
