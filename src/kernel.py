@@ -113,4 +113,7 @@ class Kernel(basekernel.BaseKernel):
 		for msg in msgs:
 			self.inqueue.put(msg)
 		return len(msgs)
+	
+	def listnodes(self):
+		return self.kmod.listnodes()
 

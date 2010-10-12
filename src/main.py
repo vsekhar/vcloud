@@ -19,6 +19,10 @@ def main():
 
 	k = kernel.Kernel(vmconfig['kernel_path'], vmconfig['kernel'], vmconfig['kernel_greeting'], kconfig)
 	# k = mockkernel.Kernel(vmconfig['verbosity'])
+	nodes = list(k.listnodes())
+	if vmconfig['verbosity'] > 1:
+		print(nodes)
+		print('%d nodes' % len(nodes))
 	v = vmesh.VMesh(k, vmconfig)
 	print(v.address_port)
 	v.start()
