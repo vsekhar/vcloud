@@ -79,8 +79,7 @@ class Kernel(basekernel.BaseKernel):
 		from sys import path
 		newpath = path[0] + "/" + p
 		path.insert(1,newpath)
-		__import__(k)
-		self.kl = KernelLocker(sys.modules[k])
+		self.kl = KernelLocker(__import__(k))		# we never store the module itself
 		assert(self.kl.greet() == greeting)			# id the kernel
 		assert(self.kl.initialize(kernelconfig))	# initialize it
 		
