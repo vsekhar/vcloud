@@ -65,8 +65,9 @@ def main():
 
 		except KeyboardInterrupt:
 		    break
-		except Exception:
+		except:
 		    traceback.print_exc()
+		    break
 
 	print("Terminating...")
 	v.cancel()
