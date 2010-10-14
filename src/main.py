@@ -18,12 +18,13 @@ def main():
 		print(vmconfig, kconfig)
 
 	k = kernel.Kernel(vmconfig['kernel_path'], vmconfig['kernel'], vmconfig['kernel_greeting'], kconfig)
-	# k = mockkernel.Kernel(vmconfig['verbosity'])
-	nodes = list(k.listnodes())
+	v = vmesh.VMesh(k, vmconfig)
+
 	if vmconfig['verbosity'] > 1:
+		nodes = list(k.listnodes())
 		print(nodes)
 		print('%d nodes' % len(nodes))
-	v = vmesh.VMesh(k, vmconfig)
+
 	print(v.address_port)
 	v.start()
     
@@ -67,6 +68,7 @@ def main():
 		except Exception:
 		    traceback.print_exc()
 
+	print("Terminating...")
 	v.cancel()
 	v.join()
 
