@@ -6,8 +6,35 @@ import basekernel
 import queue
 import sys
 import time
-from threading import Thread, Event
+from threading import Thread, Event, Lock
 from util.repeattimer import RepeatTimer
+
+class KernelFunctionWrapper:
+	def __init__(self, lock, function):
+		self.lock = lock
+		self.function = function
+
+	def __call__(self, *args):
+		with self.lock:
+			return self.function(*args)
+
+
+class KernelLocker:
+	"""KernelLocker serializes commands to the kernel
+	
+	Kernels are generally not thread-safe, so only one command should be
+	issued at a time."""
+	
+	def __init__(self, kmod):
+		self.kmod = kmod
+		self.lock = Lock()
+	
+	def __getattr__(self, attr):
+		try:
+			return KernelFunctionWrapper(self.lock, self.kmod.__dict__[attr])
+		except NameError:
+			print('Kernel code does not have attribute ', attr)
+			raise
 
 class KernelRunner(Thread):
 	def __init__(self, kernel, sendinterval=1, msgsperinterval=10):
@@ -15,7 +42,7 @@ class KernelRunner(Thread):
 		self.sendinterval = sendinterval
 		self.msgsperinterval = msgsperinterval
 		self.kernel = kernel
-		self.kmod = self.kernel.kmod
+		self.kl = self.kernel.kl
 		self.inqueue = self.kernel.inqueue
 		self.outqueue = self.kernel.outqueue
 		self.cancelevent = Event()
@@ -28,19 +55,19 @@ class KernelRunner(Thread):
 			
 			# process outgoing
 			if time.time() - self.lastsend > self.sendinterval:
-				for _ in range(self.msgsperinterval):
-					self.outqueue.put(self.kmod.send(self.msgsperinterval))
+				[self.outqueue.put(m) for m in self.kl.send(self.msgsperinterval)]
 				self.lastsend = time.time()
 			
 			# process incoming
+			msgs = []
 			try:
 				while(1):
-					self.kmod.receive(self.inqueue.get_nowait())
+					msgs.append(self.inqueue.get_nowait())
 			except queue.Empty:
-				pass
+				if len(msgs): self.kl.receive(msgs)
 			
 			# do some work
-			self.kmod.advance(1)
+			self.kl.advance(1)
 	
 	def cancel(self):
 		self.cancelevent.set()
@@ -53,11 +80,11 @@ class Kernel(basekernel.BaseKernel):
 		newpath = path[0] + "/" + p
 		path.insert(1,newpath)
 		__import__(k)
-		self.kmod = sys.modules[k]
-		assert(self.kmod.greet() == greeting)		# id the kernel
-		assert(self.kmod.initialize(kernelconfig))	# initialize it
+		self.kl = KernelLocker(sys.modules[k])
+		assert(self.kl.greet() == greeting)			# id the kernel
+		assert(self.kl.initialize(kernelconfig))	# initialize it
 		
-		# management structures
+		# set up message passing
 		self.inqueue = queue.Queue()
 		self.outqueue = queue.Queue()
 		self.run_thread = KernelRunner(kernel = self)
@@ -110,10 +137,9 @@ class Kernel(basekernel.BaseKernel):
 				    count = self.put_messages(msgs)
 				    msgs = msgs[count:]
 		'''
-		for msg in msgs:
-			self.inqueue.put(msg)
+		[self.inqueue.put(m) for m in msgs]
 		return len(msgs)
 	
 	def listnodes(self):
-		return self.kmod.listnodes()
+		return self.kl.listnodes()
 
