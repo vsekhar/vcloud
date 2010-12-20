@@ -64,7 +64,8 @@ class KernelRunner(Thread):
 				while(1):
 					msgs.append(self.inqueue.get_nowait())
 			except queue.Empty:
-				if len(msgs): self.kl.receive(msgs)
+				pass
+			if len(msgs): self.kl.receive(msgs)
 			
 			# do some work
 			self.kl.advance(1)
