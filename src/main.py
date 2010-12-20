@@ -33,8 +33,7 @@ def main():
     # server command loop
 	while 1:
 		try:
-		    command = input('>>> ')
-		    command = command.strip()
+		    command = input('>>> ').strip()
 
 		    if command == 'x':
 		        break
