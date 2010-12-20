@@ -116,7 +116,7 @@ class Kernel(basekernel.BaseKernel):
 			while(1):
 				ret.append(self.outqueue.get_nowait())
 				++count
-				if max_n is not None and count > max_n:
+				if count >= max_n:
 					break
 		except queue.Empty:
 			pass
