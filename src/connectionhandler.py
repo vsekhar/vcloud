@@ -108,6 +108,7 @@ class ConnectionHandler(async_chat):
                 print('msg from (%s:%s): %s' % (self.address, self.port, text))
 
             # Other peer sent a variable-length message, so setup to receive
+            # in next iteration of this loop
             if (command == 'm'  # kernel message
                 or command == 'r' # stats response
                 ):
@@ -210,7 +211,7 @@ class ConnectionHandler(async_chat):
 
     ''' Overrides to handle the peer_map and the time stamp '''
     def del_channel(self):
-        "Delete channel from active sockets map, and it move to peers list"
+        "Delete channel from active sockets map, and move it to peers list"
         if self.direction == 'in' and self.remote_server_port is not None:
             peer_server = (self.address, self.remote_server_port)
             self.peermanager.add_peer(peer_server, self.timestamp)
