@@ -1,13 +1,15 @@
 #!/bin/bash
 
+# import credentials
 . ./CREDENTIALS
 
+# ami parameters
 ami=ami-ccf405a5 # Alestic Ubuntu 10.10 Maverick 32-bit
+login_user=ubuntu # AMI decides this, used to be 'root'
 
-login_user=ubuntu
+# command line parameters
 nodes=$1
 development=0
-
 while getopts d name
 do
 	case $name in
