@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# A shorter launch script that handles the install/configure stuff after package injection
+
 # import credentials
 . ./CREDENTIALS
 
@@ -7,43 +9,33 @@
 ami=ami-ccf405a5 # Alestic Ubuntu 10.10 Maverick 32-bit
 login_user=ubuntu # AMI decides this, used to be 'root'
 
+# helpers
+nhoptions="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR"
+alias sshnh='ssh "${nhoptions}" "$@"'
+# alias scpnh='scp "${nhoptions}" "$@"'
+
 # command line parameters
 nodes=$1
 development=0
 debug=0
-while getopts db name
+while getopts dbf: opt_name
 do
-	case $name in
+	case $opt_name in
 	d)		development=1
 			nodes=1
 			debug=1;;
 	b)		debug=1;;
-	?)		printf "Usage: %s: -d | [-b] node_count \n"  $0
+	f)		local_pkg_file=$OPTARG;;
+	\?)		printf "Usage: %s: -d | [-b] node_count \n"  $0
 			exit 2;;
+	:)		echo "Option -$OPTARG requires an argument" >&2
+			exit 1;;
 	esac
 done
 
-# helpers
-nhoptions="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR"
-alias sshnh='ssh "${nhoptions}" "$@"'
-alias scpnh='scp "${nhoptions}" "$@"'
-
-# give the start-up script the credentials it needs (and no more)
-user_data=$( mktemp )
-cat - vcloud-user-data.bash > $user_data <<EOF
-#!/bin/bash
-deploy_bucket=$deploy_bucket
-code_file=$code_file
-deploy_file=$deploy_file
-data_bucket=$data_bucket
-development=$development
-
-EOF
-
 # spin up the instances
 run_output=`ec2-run-instances $ami -n $nodes -g default -g $cluster_security_group \
-	-k $aws_keypair -f $user_data`
-rm $user_data
+	-k $aws_keypair`
 reservation_id=`echo "${run_output}" | grep ^RESERVATION | cut -f2`
 echo RESERVATION\t$reservation_id
 
@@ -67,41 +59,24 @@ done
 
 hostnames=`echo "${instances}" | cut -f4`
 
-# connect to dev server
-if [ ! -z $development ]; then
-	len=${#hostnames[@]}
-	if [ $len -ne 1 ]; then
-		printf "Error: more than one dev server started"
-		exit 1
-	fi
-	[ $debug -ne 0 ] && echo Dev server is at: ${hostnames[0]}
-	[ $debug -ne 0 ] && echo -n Connecting
+function remote_run {
 	while true; do
-		[ $debug -ne 0 ] && echo -n .
-		sshnh ${login_user}@${hostnames[0]} "echo"
-		if [ $? -eq 255 ]; then
-			sleep 3
-		else
-			break
-		fi
+		cat $1 | sshnh $2@$3 ' \
+		deploy_dir=$( mktemp -d );\
+		cat > $deploy_dir/remote_tarball;\
+		tar jxf remote_tarball;\
+		rm remote_tarball;\
+		echo "${4}" > seeds;\
+		cd remote_tarball_dir;\
+		screen -d -m python3 main.py --arguments...
+		'
+		[ $? -ne 255 ] && break
 	done
-	sshnh ${login_user}@${hostnames[0]}
-	exit
+}
 
-# interconnection (TBD)
-else
-	for hostname in $hostnames; do
-		echo INSTANCE\t$hostname
-		# build list that excludes current instance and adds port to each name
-		tfile=${ mktemp }
-		echo "${hostnames}" | grep -v "${hostname}" | sed "s/$/${initial_listen_port}/" > $tfile
-		# inject seeds
-		scpnh $tfile ${login_user}@${hostname}:${local_deploy_dir}/seeds
-		
-		# run inside a screen
-		sshnh ${login_user}@${hostname} "cd ${local_deploy_dir}; screen -d -m python3 main.py \
-			--checkpoint-dir=$local_mnt_dir --hostname=$dns_name --index=$index --data_bucket=$data_bucket"
+for hostname in $hostnames; do
+	while true; do
+		remote_run(local_tarball, $login_user, $hostname, $hostnames) &
 	done
-	echo "Todo: interconnection implementation TBD"
-fi
-
+	wait
+done
