@@ -1,0 +1,12 @@
+#!/bin/bash
+
+. ./CREDENTIALS
+
+ami=ami-ccf405a5 # Alestic Ubuntu 10.10 Maverick 32-bit
+
+user=ubuntu
+nodes=$1
+
+ec2-run-instances $ami -n $nodes -g default -g $cluster_security_group \
+	-k $aws_keypair -f vcloud-user-data
+

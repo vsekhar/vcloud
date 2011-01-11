@@ -1,8 +1,4 @@
-# Remember to add your credentials
-
 [vcloud]
-aws_access_key_id = 	; add credential here
-aws_secret_key = 		; add credential here
 nodes = 4
 
 [vmesh]

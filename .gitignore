@@ -1,22 +1,8 @@
-# Credentials
+# Access credentials are stored here
 CREDENTIALS
-config
-
-# Compiled files
-*.pyc
-*.pyo
 
 # editor files
 *~
-
-# eclipse cruft
-.settings
-.cproject
-.project
-
-# scons cruft
-.sconsign
-.sconsign.dblite
 
 # Be sure to include gitignore eventhough it is a dot file
 !.gitignore
