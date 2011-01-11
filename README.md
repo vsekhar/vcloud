@@ -1,5 +1,8 @@
-Setting Up
-==========
+Instructions
+============
+
+Setting up
+----------
 
 1.	Install `ec2-api-tools` and `s3cmd`
 		$ sudo apt-get install ec2-api-tools s3cmd
@@ -23,9 +26,17 @@ Setting Up
 		$ s3cmd mb s3://my-deploy-bucket
 
 1.	Copy CREDENTIALS.template to CREDENTIALS and fill it out
+
+Compile on a development server
+-------------------------------
 1.	Launch and connect to a development server with `./launch -d`
 1.	Check on package, see that it compiled, upload it to `my-deploy-bucket/deploy_file`
-1.	Launch run nodes with `./launch n` where `n` is the number of nodes. The node startup script will unpack the `deploy_file` and launch it as the `ubuntu` user with various instance-specific values. The actual launch line is:
+1.	[TBD: more to go here]
+
+Launch a cluster
+----------------
+
+1.	Launch run nodes with `./launch n` where 'n' is the number of nodes. The node startup script will unpack the `deploy_file` and launch it as the `ubuntu` user with various instance-specific values. The actual launch line is:
 		$ su -c "screen -d -m python3 main.py --checkpoint-dir=$local_mnt_dir \
 			--hostname=$dns_name --index=$index --data_bucket=$data_bucket" ubuntu
 	The script will list the public hostnames of the instances that were launched.
