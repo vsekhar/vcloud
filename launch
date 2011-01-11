@@ -70,11 +70,11 @@ if [ ! -z $development ]; then
 		exit 1
 	fi
 	echo Dev server is at: ${hostnames[0]}
-	echo -n Connecting.
+	echo -n Connecting
 	while true; do
+		echo -n .
 		ssh-nh ${login_user}@${hostnames[0]} "echo"
 		if [ $? -eq 255 ]; then
-			echo -n .
 			sleep 3
 		else
 			break
@@ -83,9 +83,9 @@ if [ ! -z $development ]; then
 	ssh-nh ${login_user}@${hostnames[0]}
 	exit
 
+# interconnection (TBD)
 else
-	# todo: interconnection
 	echo Hostnames: $hostnames
-	echo "Todo: interconnection"
+	echo "Todo: interconnection implementation TBD"
 fi
 
