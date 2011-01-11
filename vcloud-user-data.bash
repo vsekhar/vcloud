@@ -37,6 +37,9 @@
 # run parameters
 base_packages="curl python python3 screen"
 local_mnt_dir=/mnt
+local_deploy_dir=/opt/vcloud/deploy
+mkdir -p ${local_deploy_dir} # create this early so that 
+
 
 # dev parameters
 dev_packages="python-dev python3-dev g++ libbz2-dev zlib1g-dev scons"
@@ -91,15 +94,9 @@ echo dns_name: $dns_name
 echo index: $index
 
 # set up our code
-deploy_dir=$( mktemp -d )
-cur_dir=$( pwd )
-cd "$deploy_dir"
+cd "$local_deploy_dir"
 curl -sS -o "deploy.tar.bz2" https://s3.amazonaws.com/${deploy_bucket}/${deploy_file} \
 	&& tar jxf deploy.tar.bz2
-
-# run inside a screen as ubuntu
-su -c "screen -d -m python3 main.py --checkpoint-dir=$local_mnt_dir \
-	--hostname=$dns_name --index=$index --data_bucket=$data_bucket" ubuntu
 
 echo "user-data script completed"
 

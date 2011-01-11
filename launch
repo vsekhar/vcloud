@@ -91,7 +91,16 @@ if [ ! -z $development ]; then
 # interconnection (TBD)
 else
 	for hostname in $hostnames; do
-		echo INSTANCE\t$HOSTNAME
+		echo INSTANCE\t$hostname
+		# build list that excludes current instance and adds port to each name
+		tfile=${ mktemp }
+		echo "${hostnames}" | grep -v "${hostname}" | sed "s/$/${initial_listen_port}/" > $tfile
+		# inject seeds
+		scpnh $tfile ${login_user}@${hostname}:${local_deploy_dir}/seeds
+		
+		# run inside a screen
+		sshnh ${login_user}@${hostname} "cd ${local_deploy_dir}; screen -d -m python3 main.py \
+			--checkpoint-dir=$local_mnt_dir --hostname=$dns_name --index=$index --data_bucket=$data_bucket"
 	done
 	echo "Todo: interconnection implementation TBD"
 fi
