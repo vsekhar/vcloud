@@ -12,9 +12,9 @@ Setting up
 		export EC2_CERT=${HOME}/.ec2/cert-52a7d7892f31482984054b6222196bd0.pem
 
 1.	Import your regular public ssh key into AWS for easy connection to instances (note the `key_name` for the credentials file)
-		$ ec2-import-keypair key_name --public-key-file key_file
+		$ ec2-import-keypair key_name --public-key-file ~/.ssh/id_rsa.pub
 
-1.	Give `s3cmd` your AWS access credentials by writing to `${HOME}/.s3cmd`:
+1.	Give `s3cmd` your AWS access credentials by writing to `~/.s3cmd`:
 		[default]
 		access_key={access key here}
 		secret_key={secret key here}
