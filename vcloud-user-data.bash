@@ -64,8 +64,7 @@ if [ ! -z $development ] ; then
 	cd "$build_dir"
 	curl -LsS -o ${boost_filename}.tar.bz2 \
 		http://sourceforge.net/projects/boost/files/boost/${boost_version}/${boost_filename}.tar.bz2/download
-	tar jxf ${boost_filename}.tar.bz2
-	rm ${boost_filename}.tar.bz2
+	tar jxf ${boost_filename}.tar.bz2 && rm ${boost_filename}.tar.bz2
 	cd ${boost_filename}
 	./bootstrap.sh --without-libraries=$suppressed_boost_libraries --with-python-version=$python_version \
 		&& sudo ./bjam -j4 -d0 install
@@ -95,7 +94,7 @@ echo index: $index
 deploy_dir=$( mktemp -d )
 cur_dir=$( pwd )
 cd "$deploy_dir"
-curl -OsS https://s3.amazonaws.com/${deploy_bucket}/${deploy_file} -o "deploy.tar.bz2" \
+curl -sS -o "deploy.tar.bz2" https://s3.amazonaws.com/${deploy_bucket}/${deploy_file} \
 	&& tar jxf deploy.tar.bz2
 
 # run inside a screen as ubuntu
