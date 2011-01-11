@@ -62,7 +62,7 @@ if [ ! -z $development ] ; then
 	# build and install boost
 	build_dir=$( mktemp -d )
 	cd "$build_dir"
-	curl -L -o ${boost_filename}.tar.bz2 \
+	curl -LsS -o ${boost_filename}.tar.bz2 \
 		http://sourceforge.net/projects/boost/files/boost/${boost_version}/${boost_filename}.tar.bz2/download
 	tar jxf ${boost_filename}.tar.bz2
 	rm ${boost_filename}.tar.bz2
@@ -75,7 +75,7 @@ if [ ! -z $development ] ; then
 	# get our code
 	code_dir=$( mktemp -d )
 	cd "$code_dir"
-	curl -o "code.tar.bz2" https://s3.amazonaws.com/${deploy_bucket}/${code_file} \
+	curl -sS -o "code.tar.bz2" https://s3.amazonaws.com/${deploy_bucket}/${code_file} \
 		&& tar jxf code.tar.bz2 && scons -j4
 	# todo: package it up into a file (and upload?)
 	cd "$cur_dir"
@@ -93,7 +93,7 @@ index=`curl ${metadata}/ami-launch-index`
 deploy_dir=$( mktemp -d )
 cur_dir=$( pwd )
 cd "$deploy_dir"
-curl -O https://s3.amazonaws.com/${deploy_bucket}/${deploy_file} -o "deploy.tar.bz2" \
+curl -OsS https://s3.amazonaws.com/${deploy_bucket}/${deploy_file} -o "deploy.tar.bz2" \
 	&& tar jxf deploy.tar.bz2
 
 # run inside a screen as ubuntu
