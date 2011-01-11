@@ -64,16 +64,19 @@ if [ ! -z $development ]; then
 		printf "Error: more than one dev server started"
 		exit 1
 	fi
-	echo Connecting to dev server at: ${hostnames[0]}
-	echo "(remember, it's still installing stuff)"
+	echo Dev server is at: ${hostnames[0]}
+	echo -n Connecting.
 	while true; do
-		ssh ${login_user}@${hostnames[0]}
+		ssh ${login_user}@${hostnames[0]} "echo"
 		if [ $? -eq 255 ]; then
+			echo -n .
 			sleep 3
 		else
 			break
 		fi
 	done
+	ssh ${login_user}@${hostnames[0]}
+	exit
 
 else
 	# todo: interconnection
