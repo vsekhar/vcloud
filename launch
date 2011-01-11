@@ -20,6 +20,9 @@ do
 	esac
 done
 
+# helpers
+alias ssh-nh='ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR "$@"'
+
 # give the start-up script the credentials it needs (and no more)
 user_data=$( mktemp )
 cat - vcloud-user-data.bash > $user_data <<EOF
@@ -69,8 +72,7 @@ if [ ! -z $development ]; then
 	echo Dev server is at: ${hostnames[0]}
 	echo -n Connecting.
 	while true; do
-		ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-			-o LogLevel=ERROR ${login_user}@${hostnames[0]} "echo"
+		ssh-nh ${login_user}@${hostnames[0]} "echo"
 		if [ $? -eq 255 ]; then
 			echo -n .
 			sleep 3
@@ -78,8 +80,7 @@ if [ ! -z $development ]; then
 			break
 		fi
 	done
-	ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-		-o LogLevel=ERROR ${login_user}@${hostnames[0]}
+	ssh-nh ${login_user}@${hostnames[0]}
 	exit
 
 else
