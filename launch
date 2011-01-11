@@ -67,7 +67,8 @@ if [ ! -z $development ]; then
 	echo Dev server is at: ${hostnames[0]}
 	echo -n Connecting.
 	while true; do
-		ssh ${login_user}@${hostnames[0]} "echo"
+		ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+			-o LogLevel=ERROR ${login_user}@${hostnames[0]} "echo"
 		if [ $? -eq 255 ]; then
 			echo -n .
 			sleep 3
@@ -75,7 +76,8 @@ if [ ! -z $development ]; then
 			break
 		fi
 	done
-	ssh ${login_user}@${hostnames[0]}
+	ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+		-o LogLevel=ERROR ${login_user}@${hostnames[0]}
 	exit
 
 else
