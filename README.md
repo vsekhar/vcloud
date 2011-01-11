@@ -5,6 +5,9 @@ Setting Up
 	(note the name you gave it for the credentials file)
 1.	Create two S3 buckets, one to store code and one to store deploy packages
 1.	Install ec2 api tools (sudo apt-get install ec2-api-tools)
+1.	Tell ec2 api tools where to find your AWS cert and private key by adding to .bashrc something like:
+		export EC2_PRIVATE_KEY=${HOME}/.ec2/pk-52a7d7892f31482984054b6222196bd0.pem
+		export EC2_CERT=${HOME}/.ec2/cert-52a7d7892f31482984054b6222196bd0.pem
 1.	Copy CREDENTIALS.template to CREDENTIALS and fill it out
 1.	Launch and connect to a development server with './launch -d'
 1.	Check on package, see that it compiled, upload it to deploy_bucket/deploy_file
