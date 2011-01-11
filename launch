@@ -10,13 +10,16 @@ login_user=ubuntu # AMI decides this, used to be 'root'
 # command line parameters
 nodes=$1
 development=0
-while getopts d name
+debug=0
+while getopts db name
 do
 	case $name in
 	d)		development=1
-			nodes=1;;
-	?)		printf "Usage: %s: -d | node_count\n"  $0
-            exit 2;;
+			nodes=1
+			debug=1;;
+	b)		debug=1;;
+	?)		printf "Usage: %s: -d | [-b] node_count \n"  $0
+			exit 2;;
 	esac
 done
 
@@ -40,12 +43,12 @@ run_output=`ec2-run-instances $ami -n $nodes -g default -g $cluster_security_gro
 	-k $aws_keypair -f $user_data`
 rm $user_data
 reservation_id=`echo "${run_output}" | grep ^RESERVATION | cut -f2`
-echo Reservation: $reservation_id
+echo RESERVATION\t$reservation_id
 
 # wait until all instances are in "running" status
-echo -n "Waiting for instances to load"
+[ $debug -ne 0 ] && echo -n "Waiting for instances to load"
 while true; do
-	echo -n .
+	[ $debug -ne 0 ] && echo -n .
 	instances=`ec2-describe-instances --filter reservation-id=$reservation_id | grep ^INSTANCE`
 	statuses=`echo "${instances}" | cut -f6`
 	finished=1
@@ -58,7 +61,7 @@ while true; do
 		break
 	fi
 done
-echo "done"
+[ $debug -ne 0 ] && echo "done"
 
 hostnames=`echo "${instances}" | cut -f4`
 
@@ -69,10 +72,10 @@ if [ ! -z $development ]; then
 		printf "Error: more than one dev server started"
 		exit 1
 	fi
-	echo Dev server is at: ${hostnames[0]}
-	echo -n Connecting
+	[ $debug -ne 0 ] && echo Dev server is at: ${hostnames[0]}
+	[ $debug -ne 0 ] && echo -n Connecting
 	while true; do
-		echo -n .
+		[ $debug -ne 0 ] && echo -n .
 		ssh-nh ${login_user}@${hostnames[0]} "echo"
 		if [ $? -eq 255 ]; then
 			sleep 3
@@ -85,7 +88,9 @@ if [ ! -z $development ]; then
 
 # interconnection (TBD)
 else
-	echo Hostnames: $hostnames
+	for hostname in $hostnames; do
+		echo INSTANCE\t$HOSTNAME
+	done
 	echo "Todo: interconnection implementation TBD"
 fi
 
