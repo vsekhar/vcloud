@@ -6,4 +6,6 @@
 1.	Launch and connect to a development server with './launch -d'
 1.	Check on package, see that it compiled, upload it to deploy_bucket/deploy_file
 1.	Launch run nodes with './launch n' where 'n' is the number of nodes
+	(startup script will unzip the deploy_file, and use python3 to run main.py
+	in a detached screen process as the 'ubuntu' user)
 

@@ -4,9 +4,52 @@
 
 ami=ami-ccf405a5 # Alestic Ubuntu 10.10 Maverick 32-bit
 
-user=ubuntu
+login_user=ubuntu
 nodes=$1
+development=0
 
-ec2-run-instances $ami -n $nodes -g default -g $cluster_security_group \
-	-k $aws_keypair -f vcloud-user-data
+while getopts d name
+do
+	case $name in
+	d)		development=1
+			nodes=1;;
+	?)		printf "Usage: %s: -d | node_count\n"  $0
+            exit 2;;
+	esac
+done
+
+# give the start-up script the credentials it needs (and no more)
+user_data=$( mktemp )
+cat - vcloud-user-data.bash > $user_data <<EOF
+#!/bin/bash
+deploy_bucket=$deploy_bucket
+code_file=$code_file
+deploy_file=$deploy_file
+data_bucket=$data_bucket
+development=$development
+
+EOF
+
+# spin up the instances
+run_output=`ec2-run-instances $ami -n $nodes -g default -g $cluster_security_group \
+	-k $aws_keypair -f $user_data`
+rm $user_data
+reservation_id=`echo "${run_output}" | grep ^RESERVATION | cut -f2`
+hostnames=`ec2-describe-instances --filter reservation-id=$reservation_id | grep ^INSTANCE | cut -f4
+
+# connect to dev server
+if [ ! -z $development ]; then
+	len=${#hostnames[@]}
+	if [ $len -ne 1 ]; then
+		printf "Error: more than one dev server started"
+		exit(1)
+	fi
+	echo Connecting to ${hostnames[0]}
+	# todo: wait loop for dev server to go from pending to running
+	# todo: wait loop for repeated ssh attempts to connect
+	# using "ssh ${login_user}@${hostnames[0]}"
+
+else
+	# todo: interconnection
+fi
 
