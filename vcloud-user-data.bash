@@ -1,4 +1,5 @@
-#!/bin/bash
+# no sha-bang since this needs credentials added at the top to work
+# (see the 'launch' script)
 
 ###############################################################################
 #
@@ -33,16 +34,6 @@
 ###############################################################################
 
 
-# un-comment to invoke development mode
-#development=1
-
-# get credentials
-. ./CREDENTIALS
-
-######################
-# END USER MODIFIABLES
-######################
-
 # run parameters
 base_packages="curl python python3 screen"
 local_mnt_dir=/mnt
@@ -50,10 +41,10 @@ local_mnt_dir=/mnt
 # dev parameters
 dev_packages="python-dev python3-dev g++ libbz2-dev zlib1g-dev scons"
 python_version=3.1
-boost_version=1_45_0
-boost_filename=boost_$boost_version
+boost_version=1.45.0
+boost_version_uscr=`echo $boost_version | sed 's/./_/'`
+boost_filename=boost_$boost_version_uscr
 suppressed_boost_libraries=date_time,regex,filesystem,graph,graph_parallel,iostreams,math,mpi,program_options,signals,system,test,wave
-
 
 set -ex
 exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
@@ -64,23 +55,22 @@ sudo apt-get -qy update && sudo apt-get -qy upgrade
 sudo apt-get -qy install $base_packages
 
 # prepare development environment
-if [ -n "$development" ] ; then
+if [ ! -z $development ] ; then
 	sudo apt-get -qy install $dev_packages
 	cur_dir=$( pwd )
 	
 	# build and install boost
 	build_dir=$( mktemp -d )
 	cd "$build_dir"
-	curl -LO http://sourceforge.net/projects/boost/files/boost/1.45.0/${boost_filename}.tar.bz2/download \
+	curl -LO http://sourceforge.net/projects/boost/files/boost/${boost_version}/${boost_filename}.tar.bz2/download \
 		-o ${boost_filename}.tar.bz2
 	tar jxf ${boost_filename}.tar.bz2
 	rm ${boost_filename}.tar.bz2
 	cd ${boost_filename}
 	./bootstrap.sh --without-libraries=$suppressed_boost_libraries --with-python-version=$python_version \
-		&& ./bjam -j4 -d0 \
 		&& sudo ./bjam -j4 -d0 install
 	cd "$cur_dir"
-	rm -rf "$build_dir"
+	sudo rm -rf "$build_dir" # needs to be sudo cuz we used sudo during build
 	
 	# get our code
 	code_dir=$( mktemp -d )
