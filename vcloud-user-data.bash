@@ -88,6 +88,8 @@ fi
 metadata=http://instance-data/latest/meta-data
 dns_name=`curl ${metadata}/public-hostname` #resolves to internal ip within AWS
 index=`curl ${metadata}/ami-launch-index`
+echo dns_name: $dns_name
+echo index: $index
 
 # set up our code
 deploy_dir=$( mktemp -d )
