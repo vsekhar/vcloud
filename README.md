@@ -1,19 +1,38 @@
 Setting Up
 ==========
 
-1.	Import your regular public ssh key into AWS for easy connection to instances
-	(note the name you gave it for the credentials file)
-1.	Create two S3 buckets, one to store code and one to store deploy packages
-1.	Install ec2 api tools (sudo apt-get install ec2-api-tools)
-1.	Tell ec2 api tools where to find your AWS cert and private key by adding to .bashrc something like:
+1.	Install `ec2-api-tools` and `s3cmd`
+		$ sudo apt-get install ec2-api-tools s3cmd
+
+1.	Tell `ec2-api-tools` where to find your AWS cert and private key by adding to your `.bashrc` something like:
 		export EC2_PRIVATE_KEY=${HOME}/.ec2/pk-52a7d7892f31482984054b6222196bd0.pem
 		export EC2_CERT=${HOME}/.ec2/cert-52a7d7892f31482984054b6222196bd0.pem
+
+1.	Import your regular public ssh key into AWS for easy connection to instances (note the `key_name` for the credentials file)
+		$ ec2-import-keypair key_name --public-key-file key_file
+
+1.	Give `s3cmd` your AWS access credentials by writing to `${HOME}/.s3cmd`:
+		[default]
+		access_key={access key here}
+		secret_key={secret key here}
+	Or let `s3cmd` create your config file:
+		$ s3cmd --configure
+
+1.	Create two S3 buckets, one to store code and one to store deploy packages (remember these for credentials file)
+		$ s3cmd mb s3://my-code-bucket
+		$ s3cmd mb s3://my-deploy-bucket
+
 1.	Copy CREDENTIALS.template to CREDENTIALS and fill it out
-1.	Launch and connect to a development server with './launch -d'
-1.	Check on package, see that it compiled, upload it to deploy_bucket/deploy_file
-1.	Launch run nodes with './launch n' where 'n' is the number of nodes
-	(startup script will unzip the deploy_file, and use python3 to run main.py
-	in a detached screen process as the 'ubuntu' user)
+1.	Launch and connect to a development server with `./launch -d`
+1.	Check on package, see that it compiled, upload it to `my-deploy-bucket/deploy_file`
+1.	Launch run nodes with `./launch n` where `n` is the number of nodes. The node startup script will unpack the `deploy_file` and launch it as the `ubuntu` user with various instance-specific values. The actual launch line is:
+		$ su -c "screen -d -m python3 main.py --checkpoint-dir=$local_mnt_dir \
+			--hostname=$dns_name --index=$index --data_bucket=$data_bucket" ubuntu
+	The script will list the public hostnames of the instances that were launched.
+
+1.	You can check on the running process by connecting to the host and attaching to the screen:
+		$ ssh ubuntu@aws-public-host-name
+		remote$ screen -r
 
 Architecture
 ============
