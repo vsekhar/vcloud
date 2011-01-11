@@ -39,11 +39,14 @@ Launch a cluster
 1.	Launch run nodes with `./launch n` where 'n' is the number of nodes. The node startup script will unpack the `deploy_file` and launch it as the `ubuntu` user with various instance-specific values. The actual launch line is:
 		$ su -c "screen -d -m python3 main.py --checkpoint-dir=$local_mnt_dir \
 			--hostname=$dns_name --index=$index --data_bucket=$data_bucket" ubuntu
-	The script will list the public hostnames of the instances that were launched.
+	The script will list the reservation and public hostnames of the instances that were launched in a tab-delimited format suitable for parsing with `grep` and `cut -fn`:
+		RESERVATION	r-abc1234
+		INSTANCE	ec2-123-321-432-425.compute-1.amazonaws.com
+		...
 
-1.	You can check on the running process by connecting to the host and attaching to the screen:
-		$ ssh ubuntu@aws-public-host-name
-		remote$ screen -r
+1.	You can check on the running process by connecting to a host and attaching to the screen:
+		$ ssh ubuntu@ec2-123-321-432-425.compute-1.amazonaws.com
+		domU-123-321-432-425$ screen -r
 
 Architecture
 ============
