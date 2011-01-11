@@ -42,7 +42,7 @@ local_mnt_dir=/mnt
 dev_packages="python-dev python3-dev g++ libbz2-dev zlib1g-dev scons"
 python_version=3.1
 boost_version=1.45.0
-boost_version_uscr=`echo $boost_version | sed 's/./_/'`
+boost_version_uscr=`echo $boost_version | sed 's/\./_/g'`
 boost_filename=boost_$boost_version_uscr
 suppressed_boost_libraries=date_time,regex,filesystem,graph,graph_parallel,iostreams,math,mpi,program_options,signals,system,test,wave
 
@@ -62,8 +62,8 @@ if [ ! -z $development ] ; then
 	# build and install boost
 	build_dir=$( mktemp -d )
 	cd "$build_dir"
-	curl -LO http://sourceforge.net/projects/boost/files/boost/${boost_version}/${boost_filename}.tar.bz2/download \
-		-o ${boost_filename}.tar.bz2
+	curl -L -o ${boost_filename}.tar.bz2 \
+		http://sourceforge.net/projects/boost/files/boost/${boost_version}/${boost_filename}.tar.bz2/download
 	tar jxf ${boost_filename}.tar.bz2
 	rm ${boost_filename}.tar.bz2
 	cd ${boost_filename}
@@ -75,7 +75,7 @@ if [ ! -z $development ] ; then
 	# get our code
 	code_dir=$( mktemp -d )
 	cd "$code_dir"
-	curl -O https://s3.amazonaws.com/${deploy_bucket}/${code_file} -o "code.tar.bz2" \
+	curl -o "code.tar.bz2" https://s3.amazonaws.com/${deploy_bucket}/${code_file} \
 		&& tar jxf code.tar.bz2 && scons -j4
 	# todo: package it up into a file (and upload?)
 	cd "$cur_dir"
