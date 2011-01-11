@@ -1,0 +1,17 @@
+# Remember to add your credentials
+
+[vcloud]
+aws_access_key_id = 	; add credential here
+aws_secret_key = 		; add credential here
+nodes = 4
+
+[vmesh]
+connections = 3
+peers = 100
+peer_timeout = 30
+
+[kernel]
+max_population = 0		; 0=unlimited (subject to memory)
+max_memory = 1024		; in Mb
+max_cpu_per_org = 10	; in seconds
+
