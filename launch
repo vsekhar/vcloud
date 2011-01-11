@@ -24,7 +24,9 @@ do
 done
 
 # helpers
-alias ssh-nh='ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR "$@"'
+nhoptions="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR"
+alias sshnh='ssh "${nhoptions}" "$@"'
+alias scpnh='scp "${nhoptions}" "$@"'
 
 # give the start-up script the credentials it needs (and no more)
 user_data=$( mktemp )
@@ -76,14 +78,14 @@ if [ ! -z $development ]; then
 	[ $debug -ne 0 ] && echo -n Connecting
 	while true; do
 		[ $debug -ne 0 ] && echo -n .
-		ssh-nh ${login_user}@${hostnames[0]} "echo"
+		sshnh ${login_user}@${hostnames[0]} "echo"
 		if [ $? -eq 255 ]; then
 			sleep 3
 		else
 			break
 		fi
 	done
-	ssh-nh ${login_user}@${hostnames[0]}
+	sshnh ${login_user}@${hostnames[0]}
 	exit
 
 # interconnection (TBD)
