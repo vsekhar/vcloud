@@ -64,14 +64,14 @@ for hostname in $hostnames; do
 		echo hostnames: $hostnames
 	fi
 	[ $verbose -ne 0 ] && echo Connecting to $hostname
-	seeds=`echo $hostnames | grep -v $hostname`
+	seeds=`echo $hostnames | tr ' ' '\n' | grep -v $hostname | sed "s/\$/:$initial_listen_port/"`
 	[ $verbose -ne 0 ] && echo seeds: $seeds
 	
 	# remote command to create temp space, expand archive and run in screen process
 	remote_cmd=`cat <<EOF
 		deploy_dir=\$( mktemp -d );
 		cd \$deploy_dir;
-		echo ${seeds} > seeds;
+		echo ${seeds} | tr ' ' '\n' > seeds;
 		cat > remote_tarball;
 		tar jxf remote_tarball;
 		cd ${remote_pkg_dir};
