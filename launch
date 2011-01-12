@@ -1,32 +1,22 @@
 #!/bin/bash
 
-# A shorter launch script that handles the install/configure stuff after package injection
+# Launch some nodes
 
 # import credentials
-. ./CREDENTIALS
+. CREDENTIALS
 
-# ami parameters
-ami=ami-ccf405a5 # Alestic Ubuntu 10.10 Maverick 32-bit
-login_user=ubuntu # AMI decides this, used to be 'root'
-
-# helpers
-nhoptions="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR"
-alias sshnh='ssh "${nhoptions}" "$@"'
-# alias scpnh='scp "${nhoptions}" "$@"'
+# remote
+remote_pkg_dir=pkg
 
 # command line parameters
-nodes=$1
-development=0
+nodes=1
 debug=0
-while getopts dbf: opt_name
+while getopts dn: opt_name
 do
 	case $opt_name in
-	d)		development=1
-			nodes=1
-			debug=1;;
-	b)		debug=1;;
-	f)		local_pkg_file=$OPTARG;;
-	\?)		printf "Usage: %s: -d | [-b] node_count \n"  $0
+	d)		debug=1;;
+	n)		nodes=$OPTARG;;
+	\?)		printf "Usage: %s: [-d] [-n node_count] \n"  $0
 			exit 2;;
 	:)		echo "Option -$OPTARG requires an argument" >&2
 			exit 1;;
@@ -34,49 +24,10 @@ do
 done
 
 # spin up the instances
-run_output=`ec2-run-instances $ami -n $nodes -g default -g $cluster_security_group \
+[ $debug -eq 0 ] && run_output=`ec2-run-instances $ami -n $nodes -g default -g $cluster_security_group \
 	-k $aws_keypair`
+[ $debug -ne 0 ] && run_output=RESERVATION$'\t'r-debug
 reservation_id=`echo "${run_output}" | grep ^RESERVATION | cut -f2`
-echo RESERVATION\t$reservation_id
+echo RESERVATION$'\t'$reservation_id
+echo $reservation_id > .reservation
 
-# wait until all instances are in "running" status
-[ $debug -ne 0 ] && echo -n "Waiting for instances to load"
-while true; do
-	[ $debug -ne 0 ] && echo -n .
-	instances=`ec2-describe-instances --filter reservation-id=$reservation_id | grep ^INSTANCE`
-	statuses=`echo "${instances}" | cut -f6`
-	finished=1
-	for status in $statuses; do
-		if [ "$status" != "running" ]; then
-			finished=0
-		fi
-	done
-	if [ $finished -eq 1 ]; then
-		break
-	fi
-done
-[ $debug -ne 0 ] && echo "done"
-
-hostnames=`echo "${instances}" | cut -f4`
-
-function remote_run {
-	while true; do
-		cat $1 | sshnh $2@$3 ' \
-		deploy_dir=$( mktemp -d );\
-		cat > $deploy_dir/remote_tarball;\
-		tar jxf remote_tarball;\
-		rm remote_tarball;\
-		echo "${4}" > seeds;\
-		cd remote_tarball_dir;\
-		screen -d -m python3 main.py --arguments...
-		'
-		[ $? -ne 255 ] && break
-	done
-}
-
-for hostname in $hostnames; do
-	while true; do
-		remote_run(local_tarball, $login_user, $hostname, $hostnames) &
-	done
-	wait
-done

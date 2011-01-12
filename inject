@@ -1,0 +1,82 @@
+#!/bin/bash
+
+# import credentials and functions
+. CREDENTIALS
+. sshnh
+. getreservation
+
+# command line parameters
+debug=0
+verbose=0
+while getopts dvr:f: opt_name
+do
+	case $opt_name in
+	d)		debug=1;;
+	v)		verbose=1;;
+	r)		reservation_file=$OPTARG;;
+	\?)		printf "Usage: %s: [-d] [-r reservation_file] package_file \n"  $0
+			exit 2;;
+	:)		echo "Option -$OPTARG requires an argument" >&2
+			exit 1;;
+	esac
+done
+
+shift $(($OPTIND - 1))
+package_file=$1
+
+# get reservation file
+getreservation $reservation_file
+[ $verbose -ne 0 ] && echo Reservation: $reservation_id
+
+# check for package file
+if [ $package_file ]; then
+	if [ ! -f $package_file ]; then
+		echo "Package file not found: $package_file"
+		exit 1
+	fi
+fi
+
+# wait until all instances are in "running" status
+[ $verbose -ne 0 ] && echo -n "Waiting for instances to load"
+while true; do
+	[ $verbose -ne 0 ] && echo -n .
+	[ $debug -eq 0 ] && instances=`ec2-describe-instances --filter reservation-id=$reservation_id | grep ^INSTANCE`
+	[ $debug -ne 0 ] && instances=INSTANCE$'\t'$'\t'$'\t'ec2-debug-hostname$'\t'$'\t'running
+	statuses=`echo "${instances}" | cut -f6`
+	finished=1
+	for status in $statuses; do
+		if [ "$status" != "running" ]; then
+			finished=0
+		fi
+	done
+	if [ $finished -eq 1 ]; then
+		break
+	fi
+done
+[ $verbose -ne 0 ] && echo "done"
+
+hostnames=`echo "${instances}" | cut -f4`
+
+for hostname in $hostnames; do
+	if [ $verbose -ne 0 ]; then
+		echo local_pkg_file: $package_file
+		echo login_user: $login_user
+		echo hostnames: $hostnames
+	fi
+	[ $verbose -ne 0 ] && echo Connecting to $hostname
+	seeds=`echo $hostnames | grep -v $hostname`
+	[ $verbose -ne 0 ] && echo seeds: $seeds
+	
+	# remote command to create temp space, expand archive and run in screen process
+	remote_cmd=`cat <<EOF
+		deploy_dir=\$( mktemp -d );
+		cd \$deploy_dir;
+		echo ${seeds} > seeds;
+		cat > remote_tarball;
+		tar jxf remote_tarball;
+		cd ${remote_pkg_dir};
+		screen -d -m ./main
+EOF` # end delimeter has to start at col 0
+
+	cat $package_file | sshnh $login_user@$hostname $remote_cmd
+done
