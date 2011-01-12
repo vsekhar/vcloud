@@ -1,44 +1,24 @@
 #!/bin/bash
 
 . CREDENTIALS
-. sshnh
-. getreservation
+. nohosts
 
-# command line parameters
-debug=0
-verbose=0
-while getopts dvr:f: opt_name
-do
-	case $opt_name in
-	d)		debug=1;;
-	v)		verbose=1;;
-	r)		reservation_file=$OPTARG;;
-	\?)		printf "Usage: %s: [-d] [-v] [instance_number] \n"  $0
-			exit 2;;
-	:)		echo "Option -$OPTARG requires an argument" >&2
-			exit 1;;
-	esac
-done
+if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
+	echo 'usage: connect [instance_number] '
+	echo
+	echo "NB: instance_numbers count from 0"
+	exit 2
+fi
 
-shift $(($OPTIND - 1))
 instance_number=$1
 [ -z $instance_number ] && instance_number=0
-[ $verbose -ne 0 ] && echo instance_number: $instance_number
-
-getreservation $reservation_file
-[ $verbose -ne 0 ] && echo reservation: $reservation_id
-
+[ ! -f './.reservation' ] && { echo 'No .reservation file found'; exit 1; }
+reservation_id=`cat ./.reservation`
 instances=`ec2-describe-instances --filter reservation-id=$reservation_id | grep ^INSTANCE`
-[ $verbose -ne 0 ] && echo instances: $instances
 hostnames=`echo "${instances}" | cut -f4`
-[ $verbose -ne 0 ] && echo hostnames: $hostnames
 hostnames_arr=($hostnames)
 len=${#hostnames_arr[@]}
-if [ $instance_number -ge $len ]; then
-	echo Error: host index out of bounds \($len hosts running, indexes start from 0\)
-	exit 1
-fi
+[ $instance_number -ge $len ] && { echo Error: host index out of bounds \($len hosts running, indexes start from 0\); exit 1; }
 hostname=${hostnames_arr[instance_number]}
-[ $verbose -ne 0 ] && echo hostname: $hostname
 sshnh ${login_user}@${hostname}
 

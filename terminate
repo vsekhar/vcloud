@@ -1,30 +1,8 @@
 #!/bin/bash
 
-. getreservation
-
-# command line parameters
-debug=0
-verbose=0
-while getopts dvr:f: opt_name
-do
-	case $opt_name in
-	d)		debug=1;;
-	v)		verbose=1;;
-	r)		reservation_file=$OPTARG;;
-	\?)		printf "Usage: %s: [-d] [-r reservation_file] package_file \n"  $0
-			exit 2;;
-	:)		echo "Option -$OPTARG requires an argument" >&2
-			exit 1;;
-	esac
-done
-
-getreservation $reservation_file
-[ $verbose -ne 0 ] && echo reservation: $reservation_id
+[ ! -f './.reservation' ] && { echo 'No .reservation file found'; exit 1; }
+reservation_id=`cat ./.reservation`
 instances=`ec2-describe-instances --filter reservation-id=$reservation_id | grep ^INSTANCE | cut -f2`
-count=${#instances[@]}
 ec2-terminate-instances $instances
-if [ $? -eq 0 ]; then
-	[ $verbose -ne 0 ] && echo Terminated $count instances in reservation $reservation_id
-	rm .reservation
-fi
+[ $? -eq 0 ] && rm ./.reservation
 

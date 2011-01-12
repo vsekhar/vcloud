@@ -2,31 +2,12 @@
 
 # Launch some nodes
 
-# import credentials
 . CREDENTIALS
 
-# remote
-remote_pkg_dir=pkg
-
-# command line parameters
-nodes=1
-debug=0
-while getopts dn: opt_name
-do
-	case $opt_name in
-	d)		debug=1;;
-	n)		nodes=$OPTARG;;
-	\?)		printf "Usage: %s: [-d] [-n node_count (=1) ] \n"  $0
-			exit 2;;
-	:)		echo "Option -$OPTARG requires an argument" >&2
-			exit 1;;
-	esac
-done
-
-# spin up the instances
-[ $debug -eq 0 ] && run_output=`ec2-run-instances $ami -n $nodes -g default -g $cluster_security_group \
+nodes=$1
+[ -z $nodes ] && nodes=1
+run_output=`ec2-run-instances $ami -n $nodes -g default -g $cluster_security_group \
 	-k $aws_keypair`
-[ $debug -ne 0 ] && run_output=RESERVATION$'\t'r-debug
 reservation_id=`echo "${run_output}" | grep ^RESERVATION | cut -f2`
 echo RESERVATION$'\t'$reservation_id
 echo $reservation_id > .reservation
