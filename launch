@@ -16,7 +16,7 @@ do
 	case $opt_name in
 	d)		debug=1;;
 	n)		nodes=$OPTARG;;
-	\?)		printf "Usage: %s: [-d] [-n node_count] \n"  $0
+	\?)		printf "Usage: %s: [-d] [-n node_count (=1) ] \n"  $0
 			exit 2;;
 	:)		echo "Option -$OPTARG requires an argument" >&2
 			exit 1;;
