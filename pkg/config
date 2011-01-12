@@ -1,7 +1,5 @@
-[vcloud]
-nodes = 4
-
 [vmesh]
+processes = 2			; based on number of processors
 connections = 3
 peers = 100
 peer_timeout = 30
