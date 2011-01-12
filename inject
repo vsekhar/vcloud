@@ -69,7 +69,7 @@ for hostname in $hostnames; do
 	remote_cmd=`cat <<EOF
 		deploy_dir=\$( mktemp -d );
 		cd \$deploy_dir;
-		echo ${seeds} | tr ' ' '\n' > seeds;
+		sudo bash -c "mkdir -p /var/vcloud; echo ${seeds} | tr ' ' '\n' > /var/vcloud/seeds";
 		cat > remote_tarball;
 		tar jxf remote_tarball;
 		cd ${remote_pkg_dir};
