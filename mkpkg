@@ -1,0 +1,8 @@
+#!/bin/bash
+
+local_pkg_dir=pkg
+local_dev_pkg_dir=dev-pkg
+
+tar cjhf $local_pkg_dir.tar.bz2 $local_pkg_dir/
+tar cjhf $local_dev_pkg_dir.tar.bz2 $local_dev_pkg_dir/
+

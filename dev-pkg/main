@@ -1,0 +1,5 @@
+#!/bin/bash
+
+sudo apt-get -qy update && sudo apt-get -qy upgrade
+sudo apt-get install -qy python-dev python3-dev g++ libbz2-dev zlib1g-dev scons
+
