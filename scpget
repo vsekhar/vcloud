@@ -1,0 +1,24 @@
+#!/bin/bash
+
+. CREDENTIALS
+. nohosts
+
+if [ $# -eq 0 ] || [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
+	echo 'usage: scpget remote_path/file local_path/local_file'
+	echo
+	echo "NB: remote path is relative to the \$login_user\'s \$HOME directory"
+	echo "You\'ll often need to navigate into the pkg directory"
+	echo
+	echo 'e.g.: scpget pkg/file local_path/local_file'
+	exit 2
+fi
+
+[ ! -f './.reservation' ] && { echo 'No .reservation file found'; exit 1; }
+reservation_id=`cat ./.reservation`
+instances=`ec2-describe-instances --filter reservation-id=$reservation_id | grep ^INSTANCE`
+hostnames=`echo "${instances}" | cut -f4`
+hostnames_arr=($hostnames)
+hostname=${hostnames_arr[0]}
+scpnh ${login_user}@${hostname}:$@
+
+
