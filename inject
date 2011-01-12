@@ -32,6 +32,7 @@ for hostname in $hostnames; do
 	
 	remote_cmd=`cat <<EOF
 		sudo bash -c "mkdir -p /var/vcloud; echo ${seeds} | tr ' ' '\n' > /var/vcloud/seeds";
+		sudo bash -c "echo ${initial_listen_port} > /var/vcloud/initial_listen_port";
 		cat > remote_tarball;
 		tar jxf remote_tarball;
 		cd ${remote_pkg_dir};
