@@ -1,0 +1,8 @@
+#!/bin/bash
+
+function sshnh () {
+	nhoptions="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR"
+	ssh ${nhoptions} $@
+}
+
+
