@@ -22,7 +22,8 @@ done
 
 shift $(($OPTIND - 1))
 instance_number=$1
-[ ! $instance_number -ge 0 ] && instance_number=0
+[ -z $instance_number ] && instance_number=0
+[ $verbose -ne 0 ] && echo instance_number: $instance_number
 
 getreservation $reservation_file
 [ $verbose -ne 0 ] && echo reservation: $reservation_id
@@ -31,5 +32,13 @@ instances=`ec2-describe-instances --filter reservation-id=$reservation_id | grep
 [ $verbose -ne 0 ] && echo instances: $instances
 hostnames=`echo "${instances}" | cut -f4`
 [ $verbose -ne 0 ] && echo hostnames: $hostnames
-sshnh ${login_user}@${hostnames[$instance_number]}
+hostnames_arr=($hostnames)
+len=${#hostnames_arr[@]}
+if [ $instance_number -ge $len ]; then
+	echo Error: host index out of bounds \($len hosts running, indexes start from 0\)
+	exit 1
+fi
+hostname=${hostnames_arr[instance_number]}
+[ $verbose -ne 0 ] && echo hostname: $hostname
+sshnh ${login_user}@${hostname}
 
