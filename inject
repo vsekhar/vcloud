@@ -29,11 +29,9 @@ getreservation $reservation_file
 [ $verbose -ne 0 ] && echo Reservation: $reservation_id
 
 # check for package file
-if [ $package_file ]; then
-	if [ ! -f $package_file ]; then
-		echo "Package file not found: $package_file"
-		exit 1
-	fi
+if [ ! $package_file ] || [ ! -f $package_file ]; then
+	echo "Package file not found: $package_file"
+	exit 1
 fi
 
 # wait until all instances are in "running" status
