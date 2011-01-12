@@ -1,8 +1,18 @@
 # Access credentials are stored here
 CREDENTIALS
 
+# archives
+*.tar
+*.gz
+*.gzip
+*.bz
+*.bz2
+
 # editor files
 *~
+
+# hidden files
+.*
 
 # Be sure to include gitignore eventhough it is a dot file
 !.gitignore
