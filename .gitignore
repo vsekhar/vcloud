@@ -11,6 +11,9 @@ CREDENTIALS
 # editor files
 *~
 
+# test files
+test
+
 # hidden files
 .*
 
