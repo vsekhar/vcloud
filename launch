@@ -4,17 +4,10 @@
 
 . CREDENTIALS
 
-if [ -f ${HOME}/.vcloud-reservation ]; then
-	echo Instances may already be running. Run ./terminate first.
-	echo '(or "rm ${HOME}/.vcloud-reservation" to suppress this msg)'
-	exit 1
-fi
-
 nodes=$1
 [ -z $nodes ] && nodes=1
 run_output=`ec2-run-instances $ami -n $nodes -g default -g $cluster_security_group \
 	-k $aws_keypair`
 reservation_id=`echo "${run_output}" | grep ^RESERVATION | cut -f2`
 echo RESERVATION$'\t'$reservation_id
-echo $reservation_id > ${HOME}/.vcloud-reservation
-
+echo $reservation_id >> ${HOME}/.vcloud-reservations

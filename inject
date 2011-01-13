@@ -10,13 +10,18 @@ if [ $# -eq 0 ] || [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
 fi
 
 package_file=$1
-[ ! -f ${HOME}/.vcloud-reservation ] && { echo 'No reservation found'; exit 1; }
-reservation_id=`cat ${HOME}/.vcloud-reservation`
+[ ! -f ${HOME}/.vcloud-reservations ] && { echo 'No reservations found'; exit 1; }
+reservations=`cat ${HOME}/.vcloud-reservations`
 [ ! $package_file ] || [ ! -f $package_file ] && { echo "Package file not found: $package_file"; exit 1; }
 
-# wait until all instances are in "running" status
+# wait for machines in all reservations to enter 'running' status
+filters=
+for reservation in $reservations; do
+	filters="$filters --filter reservation-id=$reservation"
+done
+
 while true; do
-	instances=`ec2-describe-instances --filter reservation-id=$reservation_id | grep ^INSTANCE`
+	instances=`ec2-describe-instances $filters | grep ^INSTANCE`
 	statuses=`echo "${instances}" | cut -f6`
 	finished=1
 	for status in $statuses; do
@@ -24,6 +29,7 @@ while true; do
 	done
 	[ $finished -eq 1 ] && break
 done
+wait
 
 # inject into each host the seeds file & package contents, and launch
 hostnames=`echo "${instances}" | cut -f4`
@@ -56,4 +62,3 @@ for hostname in $hostnames; do
 
 done
 wait
-
