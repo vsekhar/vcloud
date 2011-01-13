@@ -11,24 +11,24 @@ Features
 
 * No remote machine prerequisites (beyond the ability to ssh into a machine with public-private key). This enables bare AMIs or AMIs configured for other purposes to be used with no modification
 
-* All setup is done in user scripts, allowing the shape and configuration of your instances to form part of your source code (e.g. if you code up an application that needs additional packages, you can add the package to the apt-get command in the launch script as part of your application code)
+* All setup is done in user scripts, allowing the shape and configuration of your instances to form part of your source code
 
 * Simple one-word commands control launching instances, injecting code, connecting to instances, and terminating. This allows you to rapidly experiment, spin-up machines, run code, tear down whole clusters, etc.
 
 Usage
 =====
 
-Setting up your code and data package
--------------------------------------
+Creating a deployment package
+-----------------------------
 
 1.	Your code and data should be placed in a folder along with a script `vcloud-launch` which will be executed on the cluster machines.
 
 	An example folder structure is:
 		my_deployment/
 			vcloud-launch
-			my_code.c
+			my_compute_kernel
 			my_data.csv
-			...
+			 ...
 	
 1.	Compress the folder into a single package:
 		$ ./mkpkg my_deployment/
@@ -36,8 +36,8 @@ Setting up your code and data package
 		$ tar cjhf my_deployment.tar.bz2 my_deployment/
 
 
-Launching a server or cluster
------------------------------
+Deploying cluster
+-----------------
 
 1.	Launch a cluster of servers using the launch script, e.g. to launch 4 servers:
 		$ ./launch 4
@@ -48,12 +48,12 @@ Launching a server or cluster
 		$ ./launch 4
 		$ ./launch 2	# now 6 servers are running
 
-1.	Inject your deployment package (see above for instructions):
+1.	Inject your deployment package:
 		$ ./inject my_deployment.tar.bz2
 	
 	On each machine, the tarball will be uncompressed, the package directory `cd`'d into, and the `vcloud-launch` script executed.
 	
-	The `vcloud-launch` script can be any kind of script executable from bash (i.e. any 'sha-bang' script). If your AMI is a basic server with no interpreters installed, it is best to make `vcloud-launch` a bash script. You can then install interpreters and launch other programs from within that script.
+	The `vcloud-launch` script can be any kind of executable ('sha-bang' scripts, binaries, etc.), but a simple  bash script is recommended if your AMI is a basic server with no interpreters installed. You can then install interpreters, and launch other programs from within that script.
 
 NB: You should not add more servers after you have injected. This is because any subsequent injections will overwrite the data from earlier ones. If processes are running using that data, they may become corrupted.
 		$ ./launch 4
@@ -75,11 +75,10 @@ If you wish to connect to a launched server, use the `connect` script:
 You may connect to servers anytime after they are `launch`ed, whether or not they have been `inject`ed.
 
 Interacting with processes on servers
---------------------------------------
+-------------------------------------
 
-You may want to intereact with the running processes on your servers after an `inject` command. To enable this, `inject` launches your `vcloud-launch` script in a detached [screen](http://www.manpagez.com/man/1/screen/) process. You can `connect` to a server and attach to that screen:
-		$ ./connect	1	# connect to server #1
-						# server numbers start at 0, if server number is omitted, server 0 is used as default)
+You may want to interact with the processes running on your servers after an `inject` command. To enable this, `inject` launches your `vcloud-launch` script/program in a detached [screen](http://www.manpagez.com/man/1/screen/) process. You can `connect` to a server and attach to that screen:
+		$ ./connect	1	# connect to second server
 		uDom-123-124-125-126$ screen -r
 
 If you want to detach (and leave the process running), hit CTRL-A then press D.
@@ -88,18 +87,18 @@ If the `vcloud-launch` script has already completed, the `screen` process will t
 		uDom-123-124-125-126$ screen -r
 		There is no screen to be resumed.
 
-Therefore, it is a good idea to put a logger at the top of your `vcloud-launch` script so you can example output even after the process finishes. For example, your `vcloud-launch` script might begin with:
+Therefore, it is a good idea to have your `vcloud-launch` script/program perform some kind of logging so you can examine output even after the process finishes. For example, `vcloud-launch` bash script might begin with:
 		#/bin/bash
 		exec > >(tee vcloud-log) 2>&1 	# log stdout and stderr to 'vcloud-log'
 		date '+%Y-%m-%d %H:%M:%S'		# output date (for the log)
 		# execute my stuff...
 
-See `pkg/vcloud-launch` for an example script.
+See `pkg/vcloud-launch` for a complete example script.
 
 Transferring files from the cluster to the local machine
 --------------------------------------------------------
 
-If you wish to transfer a file from a single server, use the `scpget` script:
+Use `scpget` to transfer file(s) from a server:
 		$ ./scpget remote_dir/remote_file local_dir/local_file
 
 This is useful to pull back processed data from a single server (specifically, server 0) such as compiled code or log files.
@@ -118,35 +117,35 @@ and it would get you to the right server most of the time. But there's no guaran
 Remotely compiling code (manually)
 ----------------------------------
 
-You may want to compile C/C++ or other code in the same remote environment that it will eventually be run. You can do this by injecting your development tree as a package just as you would a deployment package.
+You may want to compile C/C++ or other code in the same remote environment in which it will eventually be run. You can do this by `inject`ing your development tree as a package just as you would a deployment package.
 
 Example folder structure for a source directory:
 		my_code/
 			my_src_1/
 				code1.c
-				...
+				 ...
 			my_src_2/
 				code2.c
-				...
+				 ...
 			SConstruct		# or Makefile...
 			SConscript
 
-Launch, inject and connect. Your code will be in the home directory. You can then install a dev environment and build your code. For example:
+Launch, inject and connect. Your code will be in the home directory. You can then install a dev environment, build your code, and pull it back to your local machine:
 		$ ./mkpkg my_code/
-		$ ./launch		# launches a single server by default
+		$ ./launch
 		$ ./inject my_code.tar.bz2
 		$ ./connect
-		domU124-232-231-113$ sudo apt-get -qqy install g++ python-dev scons		# install dev environment
-		...
+		domU124-232-231-113$ sudo apt-get -qqy install g++ python-dev scons
+		 ...
 		domU124-232-231-113$ cd my_code/
 		domU124-232-231-113$ scons
-		...
+		 ...
 		domU124-232-231-113$ exit
-		$ ./scpget compiled_file .			# put the file in current dir
-		$ ./terminate						# terminate compile server
+		$ ./scpget compiled_file .
+		$ ./terminate
 
 You can then include the compiled file in your deployment package, re-package and launch the cluster:
-		$ cp local.so my_deployment/
+		$ cp compiled_file my_deployment/
 		$ ./mkpkg my_deployment/
 		$ ./launch 10						# launch 10 deployment servers
 		$ ./inject my_deployment.tar.bz2
@@ -160,10 +159,10 @@ Using the directory structure from the previous section, we would have:
 		my_code/
 			my_src_1/
 				code1.c
-				...
+				 ...
 			my_src_2/
 				code2.c
-				...
+				 ...
 			SConstruct
 			SConscript
 			vcloud-launch	# add this for automatic build (must be executable)
