@@ -18,8 +18,7 @@ filters=
 for reservation in $reservations; do
 	filters="$filters --filter reservation-id=$reservation"
 done
-instances=`ec2-describe-instances $filters | grep ^INSTANCE`
-hostnames=($( echo "${instances}" | cut -f4 ))
+hostnames=($( ec2-describe-instances $filters | grep ^INSTANCE | cut -f4 ))
 len=${#hostnames[@]}
 [ $instance_number -ge $len ] && { echo Error: host index out of bounds \($len hosts running, indexes start from 0\) >&2; exit 1; }
 hostname=${hostnames[instance_number]}
