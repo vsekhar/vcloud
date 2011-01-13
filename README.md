@@ -207,7 +207,7 @@ Configuration
 1.	Configure environment variables, most easily done by putting the following in your `.bashrc` file:
 		export EC2_PRIVATE_KEY=${HOME}/.ec2/pk-aaaaaaaaaaa.pem	# downloaded above
 		export EC2_CERT=${HOME}/.ec2/cert-aaaaaaaaaaa.pem		# downloaded above
-		export VCLOUD_KEY_NAME=key_name							# imported above
+		export VCLOUD_KEY_NAME=key_name
 		export VCLOUD_SECURITY_GROUP=ClusterGroup
 		export VCLOUD_AIM=ami-ccf405a5							# Alestic Ubuntu 10.10 Maverick 32-bit
 		export VCLOUD_LOGIN_USER=ubuntu
@@ -219,6 +219,6 @@ Configuration
 
 	For example, to allow instances to communicate with each other on port 10240:
 		$ ec2-add-group $VCLOUD_SECURITY_GROUP -d "this is the group for the clusters"
-		$ ec2-authorize $VCLOUD_SECURITY_GROUP --source-group my_group -p 10240
+		$ ec2-authorize $VCLOUD_SECURITY_GROUP --source-group $VCLOUD_SECURITY_GROUP -p 10240
 
 	NB: launched machines will be part of the 'default' security group as well as the one you specify with `$VCLOUD_SECURITY_GROUP`. The 'default' group usually just allows ssh on port 22 (which is needed for injection).
