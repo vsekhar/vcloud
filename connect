@@ -15,10 +15,9 @@ instance_number=$1
 [ ! -f './.reservation' ] && { echo 'No .reservation file found'; exit 1; }
 reservation_id=`cat ./.reservation`
 instances=`ec2-describe-instances --filter reservation-id=$reservation_id | grep ^INSTANCE`
-hostnames=`echo "${instances}" | cut -f4`
-hostnames_arr=($hostnames)
-len=${#hostnames_arr[@]}
+hostnames=($( echo "${instances}" | cut -f4 ))
+len=${#hostnames[@]}
 [ $instance_number -ge $len ] && { echo Error: host index out of bounds \($len hosts running, indexes start from 0\); exit 1; }
-hostname=${hostnames_arr[instance_number]}
+hostname=${hostnames[instance_number]}
 sshnh ${login_user}@${hostname}
 
