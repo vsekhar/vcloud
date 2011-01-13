@@ -13,11 +13,8 @@ if [ $# -lt 2 ] || [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
 	exit 2
 fi
 
-[ ! -f ${HOME}/.vcloud-reservation ] && { echo 'No reservation found'; exit 1; }
-reservation_id=`cat ${HOME}/.vcloud-reservation`
-instances=`ec2-describe-instances --filter reservation-id=$reservation_id | grep ^INSTANCE`
-hostnames=`echo "${instances}" | cut -f4`
-hostnames_arr=($hostnames)
-hostname=${hostnames_arr[0]}
+[ ! -f ${HOME}/.vcloud-reservations ] && { echo 'No reservations found' >&2; exit 1; }
+reservation_filters=$(cat ${HOME}/.vcloud-reservations | sed 's/^/--filter reservation-id=/')
+hostnames=($( ec2-describe-instances $reservation_filters | grep ^INSTANCE | cut -f4 ))
+hostname=${hostnames[0]}
 scpnh ${login_user}@${hostname}:$@
-
