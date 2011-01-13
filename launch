@@ -11,4 +11,3 @@ run_output=`ec2-run-instances $ami -n $nodes -g default -g $cluster_security_gro
 reservation_id=`echo "${run_output}" | grep ^RESERVATION | cut -f2`
 echo RESERVATION$'\t'$reservation_id
 echo $reservation_id > .reservation
-
