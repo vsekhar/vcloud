@@ -1,8 +1,17 @@
 #!/bin/bash
 
-local_pkg_dir=pkg
-local_dev_pkg_dir=dev-pkg
+if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
+	echo "usage: $0 [pkg]"
+	echo
+	echo "pkg defaults to 'pkg'"
+	exit 2
+fi
 
-tar cjhf $local_pkg_dir.tar.bz2 $local_pkg_dir/
-tar cjhf $local_dev_pkg_dir.tar.bz2 $local_dev_pkg_dir/
+if [ -z $1 ]; then
+	pkg_dir=pkg
+else
+	pkg_dir=$1
+fi
+
+tar cjhf $pkg_dir.tar.bz2 $pkg_dir
 
