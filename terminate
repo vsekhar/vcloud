@@ -1,10 +1,6 @@
 #!/bin/bash
 
 [ ! -f ${HOME}/.vcloud-reservations ] && { echo 'No reservations found' >&2; exit 1; }
-reservations=`cat ${HOME}/.vcloud-reservations`
-filters=
-for reservation in $reservations; do
-	filters="$filters --filter reservation-id=$reservation"
-done
-instances=`ec2-describe-instances $filters | grep ^INSTANCE | cut -f2`
+reservation_filters=$(cat ${HOME}/.vcloud-reservations | sed 's/^/--filter reservation-id=/')
+instances=`ec2-describe-instances $reservation_filters | grep ^INSTANCE | cut -f2`
 ec2-terminate-instances $instances && rm ${HOME}/.vcloud-reservations
