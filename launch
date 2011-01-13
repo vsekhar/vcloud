@@ -6,8 +6,8 @@
 
 nodes=$1
 [ -z $nodes ] && nodes=1
-run_output=`ec2-run-instances $ami -n $nodes -g default -g $cluster_security_group \
-	-k $aws_keypair`
+run_output=`ec2-run-instances $VCLOUD_AMI -n $nodes -g default -g $VCLOUD_SECURITY_GROUP \
+	-k $VCLOUD_KEY_NAME`
 [ $? -ne 0 ] && { echo Instance launch failed >&2; exit 1; }
 reservation_id=`echo "${run_output}" | grep ^RESERVATION | cut -f2`
 echo RESERVATION$'\t'$reservation_id

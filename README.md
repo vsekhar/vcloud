@@ -200,24 +200,25 @@ Configuration
 1.	Install prerequisites
 		$ sudo apt-get install ec2-api-tools
 
-1.	Tell `ec2-api-tools` where to find your AWS cert and private key by adding to your `.bashrc` something like:
-		export EC2_PRIVATE_KEY=${HOME}/.ec2/pk-aaaaaaaaaaa.pem
-		export EC2_CERT=${HOME}/.ec2/cert-aaaaaaaaaaa.pem
+1.	Download your x.509 and private key from the AWS security credentials webpage. Place them in a safe place (usually `~/.ec2/`)
 
-1.	Import your regular public ssh key into AWS and remember the `key_name` you give for the `CREDENTIALS` file
-		$ ec2-import-keypair key_name --public-key-file ~/.ssh/id_rsa.pub
+1.	Generate an RSA ssh key if you don't already have one using `ssh-keygen`. Remember where the public key is stored (usually `~/.ssh/id_rsa.pub`)
 
-1.	Create a security group for your cluster (see [EC2 documentation](http://docs.amazonwebservices.com/AWSEC2/latest/CommandLineReference/)) and note the name for the credentials file.
+1.	Configure environment variables, most easily done by putting the following in your `.bashrc` file:
+		export EC2_PRIVATE_KEY=${HOME}/.ec2/pk-aaaaaaaaaaa.pem	# downloaded above
+		export EC2_CERT=${HOME}/.ec2/cert-aaaaaaaaaaa.pem		# downloaded above
+		export VCLOUD_KEY_NAME=key_name							# imported above
+		export VCLOUD_SECURITY_GROUP=ClusterGroup
+		export VCLOUD_AIM=ami-ccf405a5							# Alestic Ubuntu 10.10 Maverick 32-bit
+		export VCLOUD_LOGIN_USER=ubuntu
+
+1.	Import your ssh key into AWS
+		$ ec2-import-keypair $VCLOUD_KEY_NAME --public-key-file ~/.ssh/id_rsa.pub
+	
+1.	Create a security group for your cluster (see [EC2 documentation](http://docs.amazonwebservices.com/AWSEC2/latest/CommandLineReference/))
 
 	For example, to allow instances to communicate with each other on port 10240:
-		$ ec2-add-group my_group -d "this is the group for the clusters"
-		$ ec2-authorize my_group --source-group my_group -p 10240
+		$ ec2-add-group $VCLOUD_SECURITY_GROUP -d "this is the group for the clusters"
+		$ ec2-authorize $VCLOUD_SECURITY_GROUP --source-group my_group -p 10240
 
-	NB: launched machines will be part of the 'default' security group as well as the one you specifyin `CREDENTIALS`. The 'default' group usually just allows ssh on port 22 (which is needed for injection).
-
-1.	Copy `CREDENTIALS.template` to `CREDENTIALS` and fill out:
-	* the name of the key you imported to AWS
-	* the name of the security group to which machines should belong (all machines are also part of 'default')
-	* the name of the AMI to launch
-	* the ssh login user of that AMI (usually either 'root' or 'ubuntu')
-
+	NB: launched machines will be part of the 'default' security group as well as the one you specify with `$VCLOUD_SECURITY_GROUP`. The 'default' group usually just allows ssh on port 22 (which is needed for injection).

@@ -46,7 +46,7 @@ for hostname in $hostnames; do
 	#	NB: if vcloud-launch script not found in root and number of subdirs != 1
 	#	then fail
 	
-	cat $package_file | sshnh $login_user@$hostname "
+	cat $package_file | sshnh $VCLOUD_LOGIN_USER@$hostname "
 		sudo -n bash -c \"mkdir -p /var/vcloud; echo '${other_hosts}' | tr ' ' '\n' > /var/vcloud/other_hosts\";
 		tee .vcloud-data | tar jx;
 		[ -f ./vcloud-launch ] && { screen -d -m ./vcloud-launch; exit; };

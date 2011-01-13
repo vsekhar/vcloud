@@ -18,4 +18,4 @@ hostnames=($( ec2-describe-instances $reservation_filters | grep ^INSTANCE | cut
 len=${#hostnames[@]}
 [ $instance_number -ge $len ] && { echo Error: host index out of bounds \($len hosts running, indexes start from 0\) >&2; exit 1; }
 hostname=${hostnames[instance_number]}
-sshnh ${login_user}@${hostname}
+sshnh ${VCLOUD_LOGIN_USER}@${hostname}
