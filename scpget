@@ -4,7 +4,7 @@
 . nohosts
 
 if [ $# -lt 2 ] || [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
-	echo 'usage: scpget remote_path/file local_path/local_file'
+	echo "usage: $0 remote_path/file local_path/local_file"
 	echo
 	echo "NB: remote path is relative to the \$login_user\'s \$HOME directory"
 	echo "You\'ll often need to navigate into the pkg directory"

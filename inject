@@ -5,7 +5,7 @@
 . nohosts
 
 if [ $# -eq 0 ] || [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
-	echo 'usage: inject pkg_file.tar.bz2'
+	echo "usage: $0 pkg_file.tar.bz2"
 	exit 2
 fi
 
