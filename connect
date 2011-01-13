@@ -12,7 +12,7 @@ fi
 
 instance_number=$1
 [ -z $instance_number ] && instance_number=0
-[ ! -f ${HOME}/.vcloud-reservations ] && { echo 'No reservations found'; exit 1; }
+[ ! -f ${HOME}/.vcloud-reservations ] && { echo 'No reservations found' >&2; exit 1; }
 reservations=`cat ${HOME}/.vcloud-reservations`
 filters=
 for reservation in $reservations; do
@@ -21,6 +21,6 @@ done
 instances=`ec2-describe-instances $filters | grep ^INSTANCE`
 hostnames=($( echo "${instances}" | cut -f4 ))
 len=${#hostnames[@]}
-[ $instance_number -ge $len ] && { echo Error: host index out of bounds \($len hosts running, indexes start from 0\); exit 1; }
+[ $instance_number -ge $len ] && { echo Error: host index out of bounds \($len hosts running, indexes start from 0\) >&2; exit 1; }
 hostname=${hostnames[instance_number]}
 sshnh ${login_user}@${hostname}

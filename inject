@@ -10,9 +10,9 @@ if [ $# -eq 0 ] || [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
 fi
 
 package_file=$1
-[ ! -f ${HOME}/.vcloud-reservations ] && { echo 'No reservations found'; exit 1; }
+[ ! -f ${HOME}/.vcloud-reservations ] && { echo 'No reservations found' >&2; exit 1; }
 reservations=`cat ${HOME}/.vcloud-reservations`
-[ ! $package_file ] || [ ! -f $package_file ] && { echo "Package file not found: $package_file"; exit 1; }
+[ ! $package_file ] || [ ! -f $package_file ] && { echo "Package file not found: $package_file" >&2; exit 1; }
 
 # wait for machines in all reservations to enter 'running' status
 filters=
