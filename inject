@@ -32,13 +32,30 @@ for hostname in $hostnames; do
 	# make list of other hosts (all hosts excluding the current one)
 	other_hosts=`echo $hostnames | tr ' ' '\n' | grep -v $hostname`
 	
-	remote_cmd=`cat <<EOF
-		sudo bash -c "mkdir -p /var/vcloud; echo ${other_hosts} | tr ' ' '\n' > /var/vcloud/other_hosts";
-		cat > .vcloud-data.tar.bz2;
-		tar jxf .vcloud-data.tar.bz2;
-		cd ${remote_pkg_dir};
-		screen -d -m ./vcloud-launch
-EOF` # end delimeter has to start at col 0
+	# The command below both sends the $package_file and a script in one ssh connection
+	#
+	# Command does the following:
+	# 	1) dumps list of other hosts into a newline-delimited file at /var/vcloud/other_hosts
+	#	2) creates and enters 'vcloud-deploy' subdir of $login_user's $HOME
+	#	3) dumps $package_file as '.vcloud-data' and also decompresses it into ./
+	#	4) looks for vcloud-launch in 2 places (in this order):
+	#		1) current directory (i.e. the 'root' of the $package_file)
+	#		2) a single sub-dir contained in the $package_file
+	#	5) executes the first script found and exits
+	#
+	#	NB: if vcloud-launch script not found in root and number of subdirs != 1
+	#	then fail
+	
+	cat $package_file | sshnh $login_user@$hostname "
+		sudo -n bash -c \"mkdir -p /var/vcloud; echo '${other_hosts}' | tr ' ' '\n' > /var/vcloud/other_hosts\";
+		rm -rf vcloud-deploy; mkdir vcloud-deploy; cd vcloud-deploy;
+		tee .vcloud-data | tar jx;
+		[ -f ./vcloud-launch ] && { screen -d -m ./vcloud-launch; exit; };
+		echo root script not found;
+		dirs=(\$(ls -1F | grep '\/$'));
+		echo \$dirs;
+		[ \${#dirs[@]} -eq 1 ] && { cd \${dirs[0]}; screen -d -m ./vcloud-launch; exit; }" &
 
-	cat $package_file | sshnh $login_user@$hostname $remote_cmd
 done
+wait
+
