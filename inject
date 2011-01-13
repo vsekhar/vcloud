@@ -32,8 +32,8 @@ for hostname in $hostnames; do
 	
 	remote_cmd=`cat <<EOF
 		sudo bash -c "mkdir -p /var/vcloud; echo ${other_hosts} | tr ' ' '\n' > /var/vcloud/other_hosts";
-		cat > remote_tarball;
-		tar jxf remote_tarball;
+		cat > .vcloud-data.tar.bz2;
+		tar jxf .vcloud-data.tar.bz2;
 		cd ${remote_pkg_dir};
 		screen -d -m ./main
 EOF` # end delimeter has to start at col 0
