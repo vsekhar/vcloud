@@ -10,7 +10,7 @@ if [ $# -eq 0 ] || [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
 fi
 
 package_file=$1
-[ ! $package_file ] || [ ! -f $package_file ] && { echo "Package file not found: $package_file" >&2; exit 1; }
+[ ! -f $package_file ] && { echo "Package file not found: $package_file" >&2; exit 1; }
 [ ! -f ${HOME}/.vcloud-reservations ] && { echo 'No reservations found' >&2; exit 1; }
 reservation_filters=$(cat ${HOME}/.vcloud-reservations | sed 's/^/--filter reservation-id=/')
 

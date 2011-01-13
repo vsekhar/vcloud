@@ -8,6 +8,7 @@ nodes=$1
 [ -z $nodes ] && nodes=1
 run_output=`ec2-run-instances $ami -n $nodes -g default -g $cluster_security_group \
 	-k $aws_keypair`
+[ $? -ne 0 ] && { echo Instance launch failed >&2; exit 1; }
 reservation_id=`echo "${run_output}" | grep ^RESERVATION | cut -f2`
 echo RESERVATION$'\t'$reservation_id
 echo $reservation_id >> ${HOME}/.vcloud-reservations
