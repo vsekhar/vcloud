@@ -1,0 +1,23 @@
+#!/bin/bash
+
+. CREDENTIALS
+. nohosts
+
+if [ $# -lt 2 ] || [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
+	echo "usage: $0 remote_path/file local_path/local_file"
+	echo
+	echo "NB: remote path is relative to the \$login_user\'s \$HOME directory"
+	echo "You\'ll often need to navigate into the pkg directory"
+	echo
+	echo 'e.g.: scpget pkg/file local_path/local_file'
+	exit 2
+fi
+
+[ ! -f ${HOME}/.vcloud-reservations ] && { echo 'No reservations found' >&2; exit 1; }
+reservation_filters=$(cat ${HOME}/.vcloud-reservations | sed 's/^/--filter reservation-id=/')
+hostnames=($( ec2-describe-instances $reservation_filters | grep ^INSTANCE | cut -f4 ))
+idx=0
+for hostname in ${hostnames[@]}; do
+	scpnh ${login_user}@${hostname}:$@.$idx
+	let idx++
+done
