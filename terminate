@@ -3,6 +3,5 @@
 [ ! -f './.reservation' ] && { echo 'No .reservation file found'; exit 1; }
 reservation_id=`cat ./.reservation`
 instances=`ec2-describe-instances --filter reservation-id=$reservation_id | grep ^INSTANCE | cut -f2`
-ec2-terminate-instances $instances
-[ $? -eq 0 ] && rm ./.reservation
+ec2-terminate-instances $instances && rm ./.reservation
 
