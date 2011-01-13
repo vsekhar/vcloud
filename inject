@@ -48,7 +48,6 @@ for hostname in $hostnames; do
 	
 	cat $package_file | sshnh $login_user@$hostname "
 		sudo -n bash -c \"mkdir -p /var/vcloud; echo '${other_hosts}' | tr ' ' '\n' > /var/vcloud/other_hosts\";
-		rm -rf vcloud-deploy; mkdir vcloud-deploy; cd vcloud-deploy;
 		tee .vcloud-data | tar jx;
 		[ -f ./vcloud-launch ] && { screen -d -m ./vcloud-launch; exit; };
 		dirs=(\$(ls -1F | grep '\/$'));
