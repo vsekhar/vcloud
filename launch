@@ -4,6 +4,12 @@
 
 . CREDENTIALS
 
+if [ -f ./.reservation ]; then
+	echo Instances may already be running. Run ./terminate first.
+	echo '(or delete .reservation file to suppress this msg)'
+	exit 1
+fi
+
 nodes=$1
 [ -z $nodes ] && nodes=1
 run_output=`ec2-run-instances $ami -n $nodes -g default -g $cluster_security_group \
@@ -11,3 +17,4 @@ run_output=`ec2-run-instances $ami -n $nodes -g default -g $cluster_security_gro
 reservation_id=`echo "${run_output}" | grep ^RESERVATION | cut -f2`
 echo RESERVATION$'\t'$reservation_id
 echo $reservation_id > .reservation
+
