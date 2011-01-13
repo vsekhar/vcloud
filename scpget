@@ -3,7 +3,7 @@
 . CREDENTIALS
 . nohosts
 
-if [ $# -eq 0 ] || [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
+if [ $# -lt 2 ] || [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
 	echo 'usage: scpget remote_path/file local_path/local_file'
 	echo
 	echo "NB: remote path is relative to the \$login_user\'s \$HOME directory"
