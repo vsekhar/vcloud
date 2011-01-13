@@ -28,6 +28,8 @@ done
 # inject into each host the seeds file & package contents, and launch
 hostnames=`echo "${instances}" | cut -f4`
 for hostname in $hostnames; do
+	
+	# make list of other hosts (all hosts excluding the current one)
 	other_hosts=`echo $hostnames | tr ' ' '\n' | grep -v $hostname`
 	
 	remote_cmd=`cat <<EOF

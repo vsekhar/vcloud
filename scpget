@@ -21,4 +21,3 @@ hostnames_arr=($hostnames)
 hostname=${hostnames_arr[0]}
 scpnh ${login_user}@${hostname}:$@
 
-
