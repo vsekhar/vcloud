@@ -10,8 +10,8 @@ if [ $# -eq 0 ] || [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
 fi
 
 package_file=$1
-[ ! -f './.reservation' ] && { echo 'No .reservation file found'; exit 1; }
-reservation_id=`cat ./.reservation`
+[ ! -f ${HOME}/.vcloud-reservation ] && { echo 'No reservation found'; exit 1; }
+reservation_id=`cat ${HOME}/.vcloud-reservation`
 [ ! $package_file ] || [ ! -f $package_file ] && { echo "Package file not found: $package_file"; exit 1; }
 
 # wait until all instances are in "running" status

@@ -13,8 +13,8 @@ if [ $# -lt 2 ] || [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
 	exit 2
 fi
 
-[ ! -f './.reservation' ] && { echo 'No .reservation file found'; exit 1; }
-reservation_id=`cat ./.reservation`
+[ ! -f ${HOME}/.vcloud-reservation ] && { echo 'No reservation found'; exit 1; }
+reservation_id=`cat ${HOME}/.vcloud-reservation`
 instances=`ec2-describe-instances --filter reservation-id=$reservation_id | grep ^INSTANCE`
 hostnames=`echo "${instances}" | cut -f4`
 hostnames_arr=($hostnames)

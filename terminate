@@ -1,7 +1,7 @@
 #!/bin/bash
 
-[ ! -f './.reservation' ] && { echo 'No .reservation file found'; exit 1; }
-reservation_id=`cat ./.reservation`
+[ ! -f ${HOME}/.vcloud-reservation ] && { echo 'No reservation found'; exit 1; }
+reservation_id=`cat ${HOME}/.vcloud-reservation`
 instances=`ec2-describe-instances --filter reservation-id=$reservation_id | grep ^INSTANCE | cut -f2`
 ec2-terminate-instances $instances && rm ./.reservation
 
