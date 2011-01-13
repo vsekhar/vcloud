@@ -21,8 +21,8 @@ suppressed_boost_libraries=date_time,regex,filesystem,graph,graph_parallel,iostr
 
 export DEBIAN_FRONTEND=noninteractive
 date '+%Y-%m-%d %H:%M:%S'
-sudo apt-get -qy update && sudo apt-get -qy upgrade
-sudo apt-get -qy install $dev_packages
+sudo apt-get -qqy update && sudo apt-get -qqy upgrade
+sudo apt-get -qqy install $dev_packages
 
 cur_dir=$( pwd )
 
