@@ -35,7 +35,7 @@ for hostname in $hostnames; do
 		cat > .vcloud-data.tar.bz2;
 		tar jxf .vcloud-data.tar.bz2;
 		cd ${remote_pkg_dir};
-		screen -d -m ./main
+		screen -d -m ./vcloud-launch
 EOF` # end delimeter has to start at col 0
 
 	cat $package_file | sshnh $login_user@$hostname $remote_cmd
