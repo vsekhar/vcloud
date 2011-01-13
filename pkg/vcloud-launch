@@ -2,26 +2,36 @@
 
 # Deploy package
 
-set -ex
-exec >> /var/log/inject.log 2>&1
+set -e	# exit immediately on error
+# set -x	# echo commands before they expanded and executed
+exec > >(tee vcloud-log) 2>&1 # enable logging
+
+echo
+echo '*************************************'
+echo User script launched: `date '+%Y-%m-%d %H:%M:%S'`
+echo '*************************************'
+echo
 
 export DEBIAN_FRONTEND=noninteractive
-date '+%Y-%m-%d %H:%M:%S'
-sudo apt-get -qy install curl python python3
+sudo apt-get -qqy install curl python python3
 
 # get instance metadata
 metadata=http://instance-data/latest/meta-data
 dns_name=`curl ${metadata}/public-hostname` #resolves to internal ip within AWS
 index=`curl ${metadata}/ami-launch-index`
-echo dns_name: $dns_name
-echo index: $index
 
 # can now call our script with any of the following resources
 #
 #	$dns_name			this host's public DNS name
-#	$index				a sequential numbering of hosts in the same launch group
+#	$index				this host's index (hosts are sequentially numbered from 0)
 #	/var/vcloud/seeds	address of all *other* hosts (in host:port format, one per line)
 #
 
 python3 helloworld.py "#@"
+
+echo
+echo '**************************************'
+echo User script complete: `date '+%Y-%m-%d %H:%M:%S'`
+echo '**************************************'
+echo
 

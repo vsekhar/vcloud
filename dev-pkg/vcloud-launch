@@ -2,8 +2,15 @@
 
 # Development environment package
 
-set -ex
-exec >> /var/log/inject.log 2>&1
+set -e	# exit immediately on error
+# set -x	# echo commands before they expanded and executed
+exec > >(tee vcloud-log) 2>&1 # enable logging
+
+echo
+echo '*************************************'
+echo Dev script launched: `date '+%Y-%m-%d %H:%M:%S'`
+echo '*************************************'
+echo
 
 dev_packages="curl python-dev python3-dev g++ libbz2-dev zlib1g-dev scons"
 python_version=3.1
@@ -30,4 +37,10 @@ cd ${boost_filename}
 	&& sudo ./bjam -j4 -d0 install
 cd "$cur_dir"
 sudo rm -rf "$build_dir" # needs to be sudo cuz we used sudo during build
+
+echo
+echo '**************************************'
+echo Dev script complete: `date '+%Y-%m-%d %H:%M:%S'`
+echo '**************************************'
+echo
 
