@@ -1,6 +1,12 @@
 #!/bin/bash
 
+#
 # Development environment package
+#
+# This example script enables logging, installs some development packages,
+# builds and installs a recent version of the boost libraries, and starts
+# building our program
+#
 
 set -e	# exit immediately on error
 # set -x	# echo commands before they expanded and executed
@@ -37,6 +43,8 @@ cd ${boost_filename}
 	&& sudo ./bjam -j4 -d0 install
 cd "$cur_dir"
 sudo rm -rf "$build_dir" # needs to be sudo cuz we used sudo during build
+
+# scons		# build our program
 
 echo
 echo '**************************************'
