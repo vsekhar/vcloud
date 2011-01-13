@@ -51,9 +51,7 @@ for hostname in $hostnames; do
 		rm -rf vcloud-deploy; mkdir vcloud-deploy; cd vcloud-deploy;
 		tee .vcloud-data | tar jx;
 		[ -f ./vcloud-launch ] && { screen -d -m ./vcloud-launch; exit; };
-		echo root script not found;
 		dirs=(\$(ls -1F | grep '\/$'));
-		echo \$dirs;
 		[ \${#dirs[@]} -eq 1 ] && { cd \${dirs[0]}; screen -d -m ./vcloud-launch; exit; }" &
 
 done
