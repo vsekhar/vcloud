@@ -32,16 +32,15 @@ for hostname in $hostnames; do
 	# make list of other hosts (all hosts excluding the current one)
 	other_hosts=`echo $hostnames | tr ' ' '\n' | grep -v $hostname`
 	
-	# The command below both sends the $package_file and a script in one ssh connection
+	# The command below both sends and sets up $package_file in one ssh connection
 	#
-	# Command does the following:
+	# Command does the following on the remote machine:
 	# 	1) dumps list of other hosts into a newline-delimited file at /var/vcloud/other_hosts
-	#	2) creates and enters 'vcloud-deploy' subdir of $login_user's $HOME
-	#	3) dumps $package_file as '.vcloud-data' and also decompresses it into ./
-	#	4) looks for vcloud-launch in 2 places (in this order):
-	#		1) current directory (i.e. the 'root' of the $package_file)
-	#		2) a single sub-dir contained in the $package_file
-	#	5) executes the first script found and exits
+	#	2) dumps $package_file as '.vcloud-data' and also decompresses it
+	#	3) looks for vcloud-launch in 2 places (in this order):
+	#		1) current directory (i.e. the 'root' of the uncompressed $package_file)
+	#		2) a single sub-dir contained at the root of the uncompressed $package_file
+	#	4) executes the first script found and exits
 	#
 	#	NB: if vcloud-launch script not found in root and number of subdirs != 1
 	#	then fail
@@ -51,7 +50,9 @@ for hostname in $hostnames; do
 		tee .vcloud-data | tar jx;
 		[ -f ./vcloud-launch ] && { screen -d -m ./vcloud-launch; exit; };
 		dirs=(\$(ls -1F | grep '\/$'));
-		[ \${#dirs[@]} -eq 1 ] && { cd \${dirs[0]}; screen -d -m ./vcloud-launch; exit; }" &
+		[ \${#dirs[@]} -eq 1 ] && { cd \${dirs[0]}; screen -d -m ./vcloud-launch; exit; };
+		echo Error: vcloud-launch script not found;
+		exit 1" &
 
 done
 wait
