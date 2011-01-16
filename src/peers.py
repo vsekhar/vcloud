@@ -10,23 +10,29 @@ def make_deltas(d):
 	return {k:now-v for k,v in d.items()}
 
 def add_peer(address_port, timestamp=None):
+	# add if peer is new or timestamp is newer
 	if timestamp is None:
 		timestamp = datetime.datetime.utcnow()
-	aware[address_port] = timestamp
+	try:
+		aware[address_port] = max(aware[address_port], timestamp)
+	except KeyError:
+		aware[address_port] = timestamp
 
 def add_peers(iterable):
+	# add peers not already in our connection list
+	# (used when receiving peer lists with timestamp deltas)
 	now = datetime.datetime.utcnow()
-	[add_peer(ap,now-d) for ap,d in iterable]
+	conns = {ap for ap,_ in connections.values()}
+	new_peers = {ap:d for ap,d in iterable and ap not in conns}
+	[add_peer(ap,now-d) for ap,d in new_peers.items()]
 
-def read_seed_file(filename):
-	with open(filename, 'r') as seed_file:
-		now = datetime.datetime.utcnow()
-		for line in seed_file:
-			(address, _, port) = line.partition(':')
-			port=int(port)
-			aware[(address,port)] = now
+def add_seeds(iterable):
+	# used when adding seeds at program invocation (no timestamps)
+	for address_port in iterable:
+		add_peer(address_port)
 
 def list_peers():
+	# make a peer list for exchange to another peer (and to be parsed with add_peers())
 	now = datetime.datetime.utcnow()
 	l1 = ((addrport, (now-ts)) for addrport, ts in aware.items())
 	l2 = ((addrport, (now-ts)) for s.addr_port, s.timestamp in connections.values())
