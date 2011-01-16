@@ -1,11 +1,14 @@
 import multiprocessing
 import random
+import options
 from queue import Empty, Full
 
 from computeproc import ComputeProcess
 
 class ComputePool:
-	def __init__(self, processes=multiprocessing.cpu_count()*2):
+	def __init__(self, processes=options.vals.processes):
+		if not processes:
+			processes = multiprocessing.cpu_count() * 2
 		self._stop = multiprocessing.Event()
 		self._outqueue = multiprocessing.Queue()
 		self._pool = [ComputeProcess(stop=self._stop, outqueue=self._outqueue) for _ in range(processes)]
