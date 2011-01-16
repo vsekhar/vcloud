@@ -40,7 +40,8 @@ class ComputePool:
 	def msgs(self):
 		for p in self._pool:
 			try:
-				yield p.outqueue.get_nowait()
+				while(1):
+					yield p.outqueue.get_nowait()
 			except Empty:
 				pass
 		raise StopIteration
