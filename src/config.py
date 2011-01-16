@@ -1,14 +1,11 @@
 import configparser
 
-import options
-
 vals=None
 
 class NoOption(Exception): pass
 
-def parse():
+def parse(filename):
 	global vals
-	filename=options.vals.configfile
 	config = configparser.ConfigParser()
 	config.read(filename)
 	vals = config
