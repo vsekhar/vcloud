@@ -15,12 +15,7 @@ sendqueue = multiprocessing.Queue()
 recvqueue = multiprocessing.Queue()
 poll = asyncore.poll
 sockets = asyncore.socket_map
-port = None
-
-port=options.vals.port
-connections = int(options.config.get('vmesh', 'connections'))
-timeout = int(options.config.get('vmesh', 'timeout'))
-server_socket = serversocket.ServerSocket('', port)
+server_socket = serversocket.ServerSocket('', options.vals.port)
 print("Vmesh(%s): %d" % (id, server_socket.port))
 
 if options.vals.seeds:
@@ -42,7 +37,7 @@ def process_msgs(pool):
 		pass					
 
 def manage_peers():
-	if len(sockets) < connections:
+	if len(sockets) < options.vals.connections:
 		try:
 			addr_port, timestamp = peers.aware.popitem()
 		except KeyError:

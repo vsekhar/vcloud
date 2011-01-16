@@ -5,7 +5,6 @@ log_file=vmesh_log
 
 . vcloud-launch.template
 
-python3 src/main.py 
-
-# --seed-file /var/vcloud/other_hosts
+cd src
+./main.py -f ../config --other-hosts-file /var/vcloud/other_hosts
 
