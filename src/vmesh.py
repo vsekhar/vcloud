@@ -20,12 +20,11 @@ connections = None
 timeout = None
 port = None
 
-def init(port_override=None):
+def init(listen_port=0, seeds=None):
 	global server_socket, port, connections, timeout
-	if port_override:
-		port = port_override
-	else:
-		port = int(config.get('vmesh', 'port'))
+	port=listen_port
+	if seeds:
+		peers.add_seeds(seeds)
 	connections = int(config.get('vmesh', 'connections'))
 	timeout = int(config.get('vmesh', 'timeout'))
 	server_socket = serversocket.ServerSocket('', port)
