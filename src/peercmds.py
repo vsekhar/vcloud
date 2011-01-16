@@ -1,5 +1,7 @@
 import vmesh
+import peers
 import msgs
+import pickle
 
 class BadCommand(Exception): pass
 class BadData(Exception): pass
@@ -64,28 +66,21 @@ def hello(handler, _):
 	handler.send_txt('hello-to-you')
 	handler.preserve = False	# only humans say hello
 
-def msg(handler, binary_data):
-	msgs.incoming.append(binary_data)	
-
-def send_peers(handler, _):
-	# send peers with timecode deltas
-	# reply command is 'my_peers'
-	pass
-
-def get_peers(handler, data):
-	# process peers from data and add them
-	# note that they are send with time-code deltas
-	pass
-
-def kill(handler, _):
-	# kill this peer
-	pass
-
-def close(handler, _):
-	handler.close_when_done()
-
-def bad(handler, _):
-	handler.close_when_done()
+def obj(handler, data):
+	obj = pickle.loads(data)
+	if obj.name == "msg":
+		vmesh.recvqueue.put_nowait(obj.binary_data)
+	elif obj.name == "peers":
+		peers.add_peers(obj.peers)
+	elif obj.name == "request_peers":
+		newobj = Object()
+		newobj.name = "peers"
+		all_peers = peers.list_peers()
+		peers = peers.exclude_peer(all_peers, handler.peer_address_port)
+		newobj.peers = [peers]
+		handler.send_obj(newobj)
+	else:
+		handler.send_txt("Bad obj")
 
 add('whatis_my_port', whatis_my_port)
 add('whatis_your_port', whatis_your_port)
@@ -94,11 +89,6 @@ add('my_port_is', my_port_is)
 # add('your_port_is', your_port_is)	# diagnostics only
 add('my_id_is', my_id_is)
 add('hello', hello)
-add('msg', msg, binary=True)
-add('peers', send_peers)
-add('my_peers', get_peers)
-add('kill', kill)
-add('close', close)
-add('bad', bad)
+add('obj', obj, binary=True)
 	
 

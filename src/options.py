@@ -6,6 +6,7 @@ def get_parser():
 	ret = optparse.OptionParser(version="%prog " + version.string)
 	ret.add_option("-v", "--verbose", dest="verbosity", action="count")
 	ret.add_option("-f", "--config-file", dest="configfile")
+	ret.add_option("-p", "--port", dest="port", help="force port to listen on (overrides config file)")
 	return ret
 
 vals=optparse.Values()

@@ -1,7 +1,9 @@
 [vmesh]
 # seed_file=/var/vcloud/other_hosts
 connections=3
-vhost_port=8082
+timeout=60
+port=8080
+secret=aabcdeeef
 
 [kernel]
 

@@ -2,22 +2,21 @@
 
 import os
 
-import vhost
-import vmesh
 import options
 import config
-import peers
-import seedfile
-import multiprocessing
+import vmesh
+import computeproc
+import random
 
-def child(initial, port, vhost_port):
-	if initial:
-		vmesh.init(vhost_port, listen_port=port)
-		vmesh.run_forever()
-	else:
-		peers.add_peer(('127.0.0.1', port))
-		vmesh.init(vhost_port)
-		vmesh.run_forever()
+def make_child(initial, port, vhost_port):
+	def child(initial, port, vhost_port):
+		if initial:
+			vmesh.init(vhost_port, listen_port=port)
+			vmesh.run_forever()
+		else:
+			peers.add_peer(('127.0.0.1', port))
+			vmesh.init(vhost_port)
+			vmesh.run_forever()
 
 
 if __name__ == '__main__':
@@ -29,19 +28,30 @@ if __name__ == '__main__':
 	except config.NoOption as e:
 		print(e)
 
-	if seedfilename is not None: seedfile.read(seedfilename)
-	vhost_port = int(config.get('vmesh', 'vhost_port'))
+	if seedfilename is not None: peers.read_seed_file(seedfilename)
 	
-	cancel = multiprocessing.Event()
 	num_processes = multiprocessing.cpu_count() * 2
-	pool = multiprocessing.Pool(processes=num_processes)
-	# start the pool processes, communicating somehow with them as to their ports
-
+	pool = computeproc.ComputePool(num_processes)
+	pool.start()
 	try:
-		vhost.run_forever(vhost_port)
-	except KeyboardInterrupt:
-		cancel.set()
-	finally:
-		pool.close()
-		pool.join()
+		port= options.vals.port
+	except AttributeError:
+		vmesh.init()
+	else:
+		vmesh.init(port)
+
+	while(1):
+		try:
+			vmesh.poll(0)
+			vmesh.manage_peers()
+			sockets = len(vmesh.sockets)
+			for msg in pool.msgs:
+				if random.randint(1, num_processes+sockets) > num_processes:
+					vmesh.sendqueue.put_nowait(msg)
+				else:
+					pool.insert_random(msg)
+		except KeyboardInterrupt:
+			pool.cancel()
+		finally:
+			pool.join()
 

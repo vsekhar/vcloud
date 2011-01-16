@@ -14,7 +14,7 @@ class ServerSocket(asyncore.dispatcher):
 
     def handle_accept(self):
         (sock, _) = self.accept()
-        ConnectionHandler(sock, remote_server_port=self.port)
+        ConnectionHandler(sock)
 
     def handle_close(self):
         self.close()
