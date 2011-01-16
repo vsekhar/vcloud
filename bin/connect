@@ -1,6 +1,5 @@
 #!/bin/bash
 
-. CREDENTIALS
 . nohosts
 
 if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then

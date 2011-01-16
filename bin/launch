@@ -2,8 +2,6 @@
 
 # Launch some nodes
 
-. CREDENTIALS
-
 nodes=$1
 [ -z $nodes ] && nodes=1
 run_output=`ec2-run-instances $VCLOUD_AMI -n $nodes -g default -g $VCLOUD_SECURITY_GROUP \

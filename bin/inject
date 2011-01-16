@@ -1,7 +1,6 @@
 #!/bin/bash
 
 # import credentials and functions
-. CREDENTIALS
 . nohosts
 
 if [ $# -eq 0 ] || [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
