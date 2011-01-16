@@ -1,0 +1,7 @@
+[vmesh]
+# seed_file=/var/vcloud/other_hosts
+connections=3
+vhost_port=8082
+
+[kernel]
+

@@ -1,0 +1,11 @@
+#!/bin/bash
+
+packages=curl python3
+log_file=vmesh_log
+
+. vcloud-launch.template
+
+python3 src/main.py 
+
+# --seed-file /var/vcloud/other_hosts
+
