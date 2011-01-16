@@ -7,7 +7,6 @@ import config
 import vmesh
 import computeproc
 import random
-from multiprocessing import cpu_count
 
 import peers
 
@@ -28,8 +27,7 @@ if __name__ == '__main__':
 	except AttributeError:
 		pass
 	
-	num_processes = cpu_count() * 2
-	pool = computeproc.ComputePool(num_processes)
+	pool = computeproc.ComputePool()
 	pool.start()
 	try:
 		port=int(options.vals.port)

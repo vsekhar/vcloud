@@ -16,7 +16,7 @@ class ComputeProcess(multiprocessing.Process):
 			time.sleep(1)
 
 class ComputePool:
-	def __init__(self, processes=1):
+	def __init__(self, processes=multiprocessing.cpu_count()):
 		self._pool = [ComputeProcess() for _ in range(processes)]
 
 	def __len__(self):
