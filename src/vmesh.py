@@ -3,6 +3,7 @@ import string
 import asyncore
 import multiprocessing
 import socket
+from queue import Empty
 
 import config
 import serversocket
@@ -29,6 +30,21 @@ def init(listen_port=0, seeds=None):
 	timeout = int(config.get('vmesh', 'timeout'))
 	server_socket = serversocket.ServerSocket('', port)
 	print("Vmesh(%s): %d" % (id, server_socket.port))
+
+def process_msgs(pool):
+	sock_count = len(sockets)
+	proc_count = len(pool)
+	for msg in pool.msgs():
+		if random.randint(1, proc_count+sock_count) > proc_count:
+			sendqueue.put_nowait(msg)
+		else:
+			pool.insert_random(msg)
+	try:
+		while(1):
+			msg = recvqueue.get_nowait()
+			pool.insert_random(msg)
+	except Empty:
+		pass					
 
 def manage_peers():
 	if len(sockets) < connections:
