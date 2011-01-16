@@ -28,10 +28,10 @@ def read_seed_file(filename):
 
 def list_peers():
 	now = datetime.datetime.utcnow()
-	l1 = (addrport, now-ts for addrport, ts in aware.items())
-	l2 = (addrport, now-ts for s.addr_port, s.timestamp in connections.values())
+	l1 = ((addrport, (now-ts)) for addrport, ts in aware.items())
+	l2 = ((addrport, (now-ts)) for s.addr_port, s.timestamp in connections.values())
 	return itertools.chain(l1, l2)
 
 def exclude_peer(addr_port, iterable):
-	return (ap,d for ap,d in iterable if ap != addr_port)
+	return ((ap,d) for ap,d in iterable if ap != addr_port)
 

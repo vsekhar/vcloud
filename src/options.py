@@ -7,6 +7,7 @@ def get_parser():
 	ret.add_option("-v", "--verbose", dest="verbosity", action="count")
 	ret.add_option("-f", "--config-file", dest="configfile")
 	ret.add_option("-p", "--port", dest="port", help="force port to listen on (overrides config file)")
+	ret.add_option("-s", "--seed", dest="seeds", action="append", help="seed in addr,port format")
 	return ret
 
 vals=optparse.Values()

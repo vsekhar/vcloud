@@ -2,7 +2,7 @@
 # seed_file=/var/vcloud/other_hosts
 connections=3
 timeout=60
-port=8080
+port=8081
 secret=aabcdeeef
 
 [kernel]

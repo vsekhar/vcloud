@@ -5,7 +5,7 @@ from queue import Empty, Full
 
 class ComputeProcess(multiprocessing.Process):
 	def __init__(self, group=None, target=None, name=None, args=None, kwargs=None):
-		multiprocessing.Process(self, group, target, name, args, kwargs)
+		multiprocessing.Process.__init__(self)
 		self.inqueue = multiprocessing.Queue()
 		self.outqueue = multiprocessing.Queue()
 		self.stopevent = multiprocessing.Event()

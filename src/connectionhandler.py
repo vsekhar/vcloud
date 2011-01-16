@@ -1,10 +1,12 @@
 from asynchat import async_chat
 import datetime
+import pickle
+from multiprocessing.connection import deliver_challenge, answer_challenge, AuthenticationError
+
 import peercmds
 import peers
 import config
-import pickle
-from multiprocessing.connection import deliver_challenge, answerChallenge
+import authenticate
 
 MAX_MSG_LEN = 1024*1024 # 1 megabyte
 COMMAND_TERMINATOR = b'\n'
@@ -22,29 +24,27 @@ class ConnectionHandler(async_chat):
 		self.set_terminator(COMMAND_TERMINATOR)
 		self.deferred_line=None
 		self.ibuffer=[]
-		
-		# authenticate
-		
-		# send check for self-connection
-		self.send_txt("whatis_your_id")
-		
-		try:
-			if self.remote_server_port is None:
-				# Incoming connection, so authenticate and request server port
-				deliver_challenge(self.socket, config.get('vmesh', 'secret'))
-				self.send_txt("whatis_your_port")
-			else:
-				# Outgoing connection, so answer challenge
-				answerChallenge(self.socket, config.get('vmesh', 'secret'))
-		except AuthenticationError:
-			self.preserve=False
-			self.close_when_done()
-		
+
 		if timestamp:
 			self.timestamp = timestamp
 		else:
 			self.update_timestamp()
-	
+		
+		try:
+			if self.remote_server_port is None:
+				# Incoming connection, so authenticate and request server port
+				authenticate.deliver_challenge(self.socket, config.get('vmesh', 'secret').encode())
+				self.send_txt("whatis_your_port")
+			else:
+				# Outgoing connection, so answer challenge
+				authenticate.answer_challenge(self.socket, config.get('vmesh', 'secret').encode())
+		except authenticate.AuthenticationError:
+			self.preserve=False
+			self.close_when_done()
+		
+		# send check for self-connection
+		self.send_txt("whatis_your_id")
+		
 	def collect_incoming_data(self, data):
 		self.ibuffer.append(data)
 
@@ -79,7 +79,7 @@ class ConnectionHandler(async_chat):
 	def handle_close(self):
 		async_chat.handle_close(self)
 		if self.preserve:
-			vmesh.peers[self.addr_port] = self.timestamp
+			peers.aware[self.peer_address_port] = self.timestamp
 	
 	def update_timestamp(self):
 		self.timestamp = datetime.datetime.utcnow()
