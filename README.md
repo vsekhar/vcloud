@@ -21,21 +21,15 @@ Usage
 Creating a deployment package
 -----------------------------
 
-1.	Your code and data should be placed in a folder along with a script `vcloud-launch` which will be executed on the cluster machines.
+Your code and data should be placed in a folder along with a script `vcloud-launch` which will be executed on the cluster machines.
 
-	An example folder structure is:
-		my_deployment/
-			vcloud-launch
-			my_compute_kernel
-			my_data.csv
-			 ...
+An example folder structure is:
+	my_deployment/
+		vcloud-launch
+		my_compute_kernel
+		my_data.csv
+		 ...
 	
-1.	Compress the folder into a single package:
-		$ ./mkpkg my_deployment/
-	or equivalently:
-		$ tar cjhf my_deployment.tar.bz2 my_deployment/
-
-
 Deploying cluster
 -----------------
 
@@ -49,9 +43,9 @@ Deploying cluster
 		$ ./launch 2	# now 6 servers are running
 
 1.	Inject your deployment package:
-		$ ./inject my_deployment.tar.bz2
+		$ ./inject my_deployment/
 	
-	On each machine, the tarball will be uncompressed, the package directory `cd`'d into, and the `vcloud-launch` script executed.
+	On each machine, the deployment directory will be transferred, the directory `cd`'d into, and the `vcloud-launch` script executed.
 	
 	The `vcloud-launch` script can be any kind of executable ('sha-bang' scripts, binaries, etc.), but a simple  bash script is recommended if your AMI is a basic server with no interpreters installed. You can then install interpreters, and launch other programs from within that script.
 
