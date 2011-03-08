@@ -18,6 +18,8 @@ Features
 Usage
 =====
 
+NB: This guide assumes you are running scripts from the vcloud/bin directory. Installation is not yet implemented.
+
 Creating a deployment package
 -----------------------------
 
@@ -47,14 +49,14 @@ Deploying cluster
 	
 	On each machine, the deployment directory will be transferred, the directory `cd`'d into, and the `vcloud-launch` script executed.
 	
-	The `vcloud-launch` script can be any kind of executable ('sha-bang' scripts, binaries, etc.), but a simple  bash script is recommended if your AMI is a basic server with no interpreters installed. You can then install interpreters, and launch other programs from within that script.
+	The `vcloud-launch` script can be any kind of executable ('sha-bang' scripts, binaries, etc.), but a simple bash script is recommended if your AMI is a basic server with no interpreters installed. You can then install interpreters, and launch other programs from within that script. (see `pkg/vcloud-launch` for an example script)
 
 NB: You should not add more servers after you have injected. This is because any subsequent injections will overwrite the data from earlier ones. If processes are running using that data, they may become corrupted.
 		$ ./launch 4
-		$ ./inject my_deployment.tar.bz2
+		$ ./inject my_deployment/
 		$ ./launch 2						# now 6 servers running
 											# but only 4 were injected
-		$ ./inject my_deployment.tar.bz2	# error! initial 4 servers are corrupted
+		$ ./inject my_deployment/			# error! initial 4 servers are corrupted
 
 Instead, `terminate` your existing servers and re-`launch`.
 	
@@ -87,7 +89,7 @@ Therefore, it is a good idea to have your `vcloud-launch` script/program perform
 		date '+%Y-%m-%d %H:%M:%S'		# output date (for the log)
 		# execute my stuff...
 
-See `pkg/vcloud-launch` for a complete example script.
+See `pkg/vcloud-launch` for an example script.
 
 Transferring files from the cluster to the local machine
 --------------------------------------------------------
@@ -95,7 +97,7 @@ Transferring files from the cluster to the local machine
 Use `scpget` to transfer file(s) from a server:
 		$ ./scpget remote_dir/remote_file local_dir/local_file
 
-This is useful to pull back processed data from a single server (specifically, server 0) such as compiled code or log files.
+This is useful to pull back processed data from a single server (specifically, server 0), such as compiled code or log files.
 
 If you want to get a file from all servers, use `scpgetall`. The files from each server will be suffixed with a server number:
 		$ ./scpgetall remote_dir/remote_file local_file
@@ -140,9 +142,8 @@ Launch, inject and connect. Your code will be in the home directory. You can the
 
 You can then include the compiled file in your deployment package, re-package and launch the cluster:
 		$ cp compiled_file my_deployment/
-		$ ./mkpkg my_deployment/
 		$ ./launch 10						# launch 10 deployment servers
-		$ ./inject my_deployment.tar.bz2
+		$ ./inject my_deployment/
 
 Remotely compiling code (automatically)
 ---------------------------------------
@@ -163,16 +164,15 @@ Using the directory structure from the previous section, we would have:
 
 (See the `dev-pkg/vcloud-launch` file for an example script that installs some development packages, builds and installs a recent version of the boost libraries, and starts building the user's code.)
 
-Package it up and inject (compilation will be started automatically):
-		$ ./mkpkg my_code/
+Launch a server and inject (compilation will be started automatically):
 		$ ./launch							# defaults to 1 machine
-		$ ./inject my_code.tar.bz2
+		$ ./inject my_code/
 
 If you want to observe the compilation, connect to the instance and re-attach to screen (assuming compilation is still in progress):
 		$ ./connect		# defaults to server 0
 		domU124-232-231-113$ screen -r
 
-The example script logs to `vcloud-log`. We can examine this by either connecting
+The example script `dev-pkg/vcloud-launch` logs to `vcloud-log`. We can examine the log file by either connecting
 		$ ./connect
 		domU124-232-231-113$ less vcloud-log
 or by pulling down the log file to the local machine
@@ -184,9 +184,8 @@ Finally, we can get the compiled file(s)
 		$ ./terminate
 and include it in our deployment package to launch a cluster as before:
 		$ cp compiled_file my_deployment/
-		$ ./mkpkg mydeployment/
 		$ ./launch 10						# launch 10 run servers
-		$ ./inject my_deployment.tar.bz2
+		$ ./inject my_deployment/
 
 Configuration
 =============
