@@ -8,6 +8,13 @@
 # building our program
 #
 
+dev_packages="curl python-dev python3-dev g++ libbz2-dev zlib1g-dev scons"
+python_version=3.1
+boost_version=1.45.0
+boost_version_uscr=`echo $boost_version | sed 's/\./_/g'`
+boost_filename=boost_$boost_version_uscr
+suppressed_boost_libraries=date_time,regex,filesystem,graph,graph_parallel,iostreams,math,mpi,program_options,signals,system,test,wave
+
 set -e	# exit immediately on error
 # set -x	# echo commands before they expanded and executed
 exec > >(tee vcloud-log) 2>&1 # enable logging
@@ -17,13 +24,6 @@ echo '*************************************'
 echo Dev script launched: `date '+%Y-%m-%d %H:%M:%S'`
 echo '*************************************'
 echo
-
-dev_packages="curl python-dev python3-dev g++ libbz2-dev zlib1g-dev scons"
-python_version=3.1
-boost_version=1.45.0
-boost_version_uscr=`echo $boost_version | sed 's/\./_/g'`
-boost_filename=boost_$boost_version_uscr
-suppressed_boost_libraries=date_time,regex,filesystem,graph,graph_parallel,iostreams,math,mpi,program_options,signals,system,test,wave
 
 export DEBIAN_FRONTEND=noninteractive
 date '+%Y-%m-%d %H:%M:%S'
