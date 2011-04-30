@@ -12,11 +12,6 @@
 # editor files
 *~
 
-# eclipse cruft
-.settings
-.cproject
-.project
-
 # scons cruft
 .sconsign
 .sconsign.dblite
