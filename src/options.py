@@ -1,3 +1,5 @@
+# TODO: Convert this to use argparse (once python 3.2 is updated to fix bug)
+
 import optparse
 import socket
 
@@ -14,7 +16,7 @@ def get_parser():
 	ret.add_option("-n", "--processes", dest="processes", type='int', help="number of compute processes (overrides config file, default=cpu_count*2)")
 	return ret
 
-vals, args = get_parser().parse_args(values=vals)
+vals, args = get_parser().parse_args()
 config.parse(vals.configfile)
 
 if not hasattr(vals, 'port'):
@@ -27,6 +29,11 @@ if not hasattr(vals, 'processes'):
 	except config.NoOption:
 		# default to cpu_count * 2
 		vals.processes = None
+
+try:
+	seedfilename = vals.other_hosts_file
+except NameError:
+	seedfilename = None
 
 vals.connections = int(config.get('vmesh', 'connections'))
 vals.timeout = int(config.get('vmesh', 'timeout'))
@@ -41,8 +48,8 @@ if hasattr(vals, 'cmd_line_seeds'):
 	for addr_port in vals.cmd_line_seeds:
 		address, _, port = addr_port.partition(':')
 		vals.seeds.append((address, int(port)))
-if hasattr(vals, 'other_hosts_file'):
-	with open(vals.other_hosts_file, 'r') as otherhostsfile:
+if seedfilename is not None:
+	with open(seedfilename, 'r') as otherhostsfile:
 		port = int(config.get('vmesh', 'port')) # don't use cmdline port override here
 		for hostname in otherhostsfile:
 			addrinfo = socket.getaddrinfo(hostname, port, socket.AF_INET, socket.SOCK_STREAM)
