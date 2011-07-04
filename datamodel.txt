@@ -1,0 +1,73 @@
+Structure
+---------
+
+Machine (1 instance of vmesh, 1 island per CPU):
+ - Subprocess module:
+   - Process 1: island 1
+   - ...
+   - Process n: island n
+  
+Vmesh handles interchange between islands on the same machine, interchange between
+islands on other machines, and machine memory/cpu management
+
+
+VMESH run-process
+-----------------
+
+1. Vmesh checks itself in for discovery:
+	GET discovery (latest n versions)
+	de-serialize and merge dictionaries (of node->TTL)
+	 - merge function is min(TTL)
+	add/update yourself with max_ttl
+	decrement everyone else's TTL, kill those with 0
+	add remaining nodes to connection cue
+	serialize and PUT discovery (as new version)
+
+2. Gets configuration
+	GET config (latest version)
+
+3. Subscribes to 'config' SNS topic and start HTTP server (?)
+	HTTP server listens and sets some variable when it is hit
+	vmesh loop checks variable or timer expiry and GETs config (latest version) if needed
+
+4. Vmesh creates a GUID for itself:
+	concat(AWS instance ID, public DNS name)
+	e.g. vmesh_id = "i-3ab4d2c2_121_135_132_231.awscompute.com"
+
+5. Vmesh logs it's own statistics to S3, versioning as it goes:
+	log-[vmesh_id] (version n)
+
+6. Vmesh creates a GUID for each island:
+	concat(vmesh_id, random salt (8 hex chars == 32 bits))
+	e.g. island_id = "i-3ab4d2c2_121_135_132_231.awscompute.com_a3fcb2ba"
+
+7. Vmesh logs each island's statistics to S3, versioning as it goes (if specified in config):
+	log-[island_id] (version n)
+
+8. Vmesh checkpoints each island's population to S3, versioning as it goes (if specified in config):
+	pop-[island_id] (version n)
+
+9. Vmesh logs own and island stats to a queue for real-time processing (if specified in config):
+	boto.sqs.send_message('vmesh_log', [data])
+
+
+Administration
+--------------
+
+Administrator PUTs config (new version) and triggers 'config" SNS topic
+
+Config specifies:
+ -evolutionary params:
+  -energy in/out flows
+  
+ -mesh params:
+  -target connection count
+  -log type (sqs, s3, both)
+  -log interval
+  -checkpoint interval
+  -one-off commands (e.g. checkpoint/log now)
+
+Administrator can monitor in real-time by reading from SQS
+
+Administrator can scrape historic logs by dumping from S3, and process (via mapreduce?)
+
