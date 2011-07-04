@@ -34,12 +34,12 @@ VMESH run-process
 	concat(AWS instance ID, public DNS name)
 	e.g. vmesh_id = "i-3ab4d2c2_121_135_132_231.awscompute.com"
 
-5. Vmesh logs it's own statistics to S3, versioning as it goes:
-	log-[vmesh_id] (version n)
-
-6. Vmesh creates a GUID for each island:
+5. Vmesh creates a GUID for each island:
 	concat(vmesh_id, random salt (8 hex chars == 32 bits))
 	e.g. island_id = "i-3ab4d2c2_121_135_132_231.awscompute.com_a3fcb2ba"
+
+6. Vmesh logs it's own statistics to S3, versioning as it goes (if specified in config):
+	log-[vmesh_id] (version n)
 
 7. Vmesh logs each island's statistics to S3, versioning as it goes (if specified in config):
 	log-[island_id] (version n)
@@ -48,13 +48,13 @@ VMESH run-process
 	pop-[island_id] (version n)
 
 9. Vmesh logs own and island stats to a queue for real-time processing (if specified in config):
-	boto.sqs.send_message('vmesh_log', [data])
+	boto.sqs.send_message('vmesh_log', [json data])
 
 
 Administration
 --------------
 
-Administrator PUTs config (new version) and triggers 'config" SNS topic
+Administrator PUTs config (new version) and triggers 'config' SNS topic
 
 Config specifies:
  -evolutionary params:
