@@ -9,6 +9,8 @@
 *.pyc
 *.pyo
 
+*.log
+
 # Access credentials
 CREDENTIALS.py
 
