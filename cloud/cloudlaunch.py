@@ -1,14 +1,21 @@
 #!/usr/bin/python
 
 import boto
-import os
 import sys
-import tempfile
-import gzip
+
+price='0.40'
+ami='ami-e2af508b'
+instance_type='m1.small'
+count=1
+persistent=True
+keypair_name='cdk11744-nix'
+security_groups=['default', 'Cluster']
+
 
 include_prefix = '### VMESH_INCLUDE:'
 
 def user_data_script(filename):
+	import os, gzip, tempfile
 	combined_temp_file = tempfile.NamedTemporaryFile()
 	user_data_gzip = gzip.GzipFile(fileobj=combined_temp_file, mode='wt')
 
@@ -26,26 +33,52 @@ def user_data_script(filename):
 
 	user_data_gzip.close()
 	combined_temp_file.flush()
-	
+
 	# Debug
-	if True:
+	if False:
 		with gzip.GzipFile(filename=combined_temp_file.name, mode='rt') as readfile:
 			for line in readfile:
 				print line,
 
 	return combined_temp_file
 
+def launch(user_data):
+	# use boto to launch the spot instances request
+	import boto
+	conn = boto.connect_ec2()
+	reservation = conn.request_spot_instances(
+							price=price,
+							image_id=ami,
+							count=count,
+							instance_type=instance_type,
+							type='persistent' if persistent else 'one-time',
+							key_name=keypair_name,
+							security_groups=security_groups,
+							user_data=user_data
+							)
+	return reservation
+
+def load_binary_data(datafilename):
+	ret = b''
+	with open(datafilename, mode='rb') as data_file:
+		while True:
+			data = data_file.read(1024*1024)
+			if len(data):
+				ret += data
+			else:
+				break
+	return ret
+
 def main():
+	import sys
 	# create the user-data-script (merging in includes)
 	if len(sys.argv) > 1:
 		filename = sys.argv[1]
 	else:
 		filename = 'user-data-script.py'
 	gzipped_file = user_data_script(filename)
-
-	# use boto to launch the spot instances request
-	
-	
+	spot_resv = launch(user_data=load_binary_data(gzipped_file.name))
 
 if __name__ == '__main__':
 	main()
+
