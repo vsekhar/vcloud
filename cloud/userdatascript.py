@@ -3,6 +3,7 @@
 packages = ['python-boto']
 
 logfilename = 'user-data-script.log'
+vmesh_domain = 'vmesh'
 version = (1,0,0)
 
 ### VMESH_INCLUDE: CREDENTIALS.py
@@ -14,17 +15,46 @@ import logging
 def get_archive():
 	pass
 
-def register_node():
+def get_domain():
 	import boto
-	pass
+	sdb = boto.connect_sdb(CREDENTIALS.access_key, CREDENTIALS.secret_key)
+	dom = sdb.lookup(vmesh_domain)
+	if dom is None:
+		dom = sdb.create_domain(vmesh_domain)
+	return dom
+
+def register_node(hostname):
+	dom = get_domain()
+	record = dom.get_item(hostname)
+	if record is None:
+		record = dom.new_item(hostname)
+	import time
+	cur_time = time.time()
+	record['timestamp'] = cur_time
+	record.save()
+	
+	# purge old records
+	lifetime = 3600 # def = 3600 = 1 hour
+	query = dom.select("SELECT timestamp FROM %s WHERE timestamp is not null ORDER BY timestamp ASC" % vmesh_domain)
+	for item in query:
+		if float(item['timestamp']) < cur_time - lifetime:
+			item.delete()
+		else:
+			break # it's a sorted list
+
+def print_hosts():
+	dom = get_domain()
+	for item in dom:
+		print item.name, item['timestamp']
 
 def user_code():
-	global metadata
+	global metadata, args
 	metadata = get_metadata()
-	logging.info('Public hostname: %s' % metadata['public-hostname'])
-
+	logging.info('Registering: %s' % (metadata['public-hostname']))
+	register_node(metadata['public-hostname'])
+	if args.local:
+		print_hosts()
 	# get archive
-	# register node
 
 ################################################
 # End user modifiables
@@ -34,7 +64,7 @@ def parse_args():
 	import argparse
 
 	parser = argparse.ArgumentParser(description='user-data-script.py: initial python instance startup script')
-	parser.add_argument('--debug', default=False, action='store_true', help='run in debug mode (log to screen, no AWS metadata)')
+	parser.add_argument('--local', default=False, action='store_true', help='run in local/debug mode (log to screen, no AWS metadata)')
 	parser.add_argument('--skip-update', default=False, action='store_true', help='skip apt package updates')
 	parser.add_argument('--vmesh-trying-for-sudo', default=False, action='store_true', help='INTERNAL: flag used in permissions escalation')
 
@@ -42,7 +72,7 @@ def parse_args():
 
 def get_metadata():
 	global args
-	if args.debug:
+	if args.local:
 		return {'public-hostname': 'localhost',
 				'ami-launch-index': 0,
 				'ami-id': 'ami-localdebug'}
@@ -73,7 +103,7 @@ def restart(with_sudo=False, add_args=[], remove_args=[]):
 
 def upgrade_and_install():
 	global args
-	if args.skip_update:
+	if args.skip_update or args.local:
 		logging.info('Skipping upgrade/install')
 		return
 	else:
@@ -97,10 +127,10 @@ def upgrade_and_install():
 		restart(with_sudo=False, add_args=['--skip-update'], remove_args=['--vmesh-trying-for-sudo'])
 
 def setup_logging():
-	import sys
+	import sys, time
 	global args
 	# setup logging
-	if args.debug:
+	if args.local:
 		logfile = sys.stdout
 	else:
 		logfile = open(logfilename, 'a')
@@ -114,7 +144,8 @@ def setup_logging():
 						format='%(asctime)s: %(message)s',
 						datefmt='%m/%d/%Y %I:%M:%S %p')
 
-	logging.info('### Vmesh %d.%d.%d starting (python %d.%d.%d) ###' % (version + sys.version_info[:3]))
+	logging.getLogger('boto').setLevel(logging.CRITICAL)
+	logging.info('### Vmesh %d.%d.%d starting (python %d.%d.%d, timestamp %d) ###' % (version + sys.version_info[:3] + (time.time(),)))
 	logging.debug('sys.argv: %s', str(sys.argv))
 
 if __name__ == '__main__':
