@@ -118,7 +118,6 @@ def setup_logging():
 	logging.debug('sys.argv: %s', str(sys.argv))
 
 if __name__ == '__main__':
-	import sys
 	global args
 	args = parse_args()
 	

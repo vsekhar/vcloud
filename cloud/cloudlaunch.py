@@ -33,17 +33,15 @@ def user_data_script(filename):
 
 	user_data_gzip.close()
 	combined_temp_file.flush()
-
-	# Debug
-	if False:
-		with gzip.GzipFile(filename=combined_temp_file.name, mode='rt') as readfile:
-			for line in readfile:
-				print line,
-
 	return combined_temp_file
 
+def print_gzipped_file(filename):
+	import gzip
+	with gzip.GzipFile(filename=filename, mode='rt') as readfile:
+		for line in readfile:
+			print line,
+
 def launch(user_data):
-	# use boto to launch the spot instances request
 	import boto
 	conn = boto.connect_ec2()
 	reservation = conn.request_spot_instances(
@@ -77,6 +75,7 @@ def main():
 	else:
 		filename = 'user-data-script.py'
 	gzipped_file = user_data_script(filename)
+	# print_gzipped_file(gzipped_file.name)
 	spot_resv = launch(user_data=load_binary_data(gzipped_file.name))
 
 if __name__ == '__main__':
