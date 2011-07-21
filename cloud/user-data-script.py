@@ -29,6 +29,8 @@ def user_code():
 	import boto
 	global metadata
 	metadata = get_metadata()
+	hostname = metadata['hostname']
+	logging.info('Hostname: %s' % hostname)
 
 
 	# get archive
@@ -48,50 +50,59 @@ def parse_args():
 
 	return parser.parse_args()
 
-def restart(with_sudo=False, add_args=[]):
+def restart(with_sudo=False, add_args=[], remove_args=[]):
 	import os, sys
 	if with_sudo:
 		command = 'sudo'
 		new_args = ['sudo'] + sys.argv
-		new_args += ['--vmesh-trying-for-sudo']
 	else:
 		command = sys.argv[0]
 		new_args = sys.argv
-		new_args = filter(lambda x: not x.startswith('--vmesh-trying-for-sudo'), new_args)
+
+	def myfilter(s):
+		for remove_arg in remove_args:
+			if s.startswith(remove_arg):
+				return False
+		return True
+
+	new_args = filter(myfilter, new_args)
 	new_args += add_args
 	sys.stdout.flush()
 	os.execvp(command, new_args)
 	# exit(0)
 
 def upgrade_and_install():
-	import apt
 	global args
+	if args.skip_update:
+		logging.info('Skipping upgrade/install')
+		return
+	else:
+		import apt
+		cache = apt.Cache()
+		try:
+			cache.update()
+			cache.open(None)
+			cache.upgrade()
+			for pkg in packages:
+				cache[pkg].mark_install()
+			logging.info('Upgrading and installing...')
+			cache.commit()
+		except apt.cache.LockFailedException:
+			if not args.vmesh_trying_for_sudo:
+				logging.info("Need super-user rights to upgrade and install, restarting with sudo...")
+				restart(with_sudo=True, add_args=['--vmesh-trying-for-sudo'])
+			else:
+				raise
+		logging.info("Upgrade/install complete, restarting without sudo...")
+		restart(with_sudo=False, add_args=['--skip-update'], remove_args=['--vmesh-trying-for-sudo'])
 
-	cache = apt.Cache()
-	try:
-		cache.update()
-		cache.open(None)
-		cache.upgrade()
-		for pkg in packages:
-			cache[pkg].mark_install()
-		cache.commit():
-	except apt.cache.LockFailedException:
-		if not args.vmesh_trying_for_sudo:
-			logging.info("Need super-user rights, restarting with sudo...")
-			restart(with_sudo=True)
-		else:
-			raise
-	logging.info("Upgrade/install complete, restarting without sudo...")
-	restart(with_sudo=False, add_args=['--skip-update'])
-
-if __name__ == '__main__':
+def setup_logging():
 	import sys
 	global args
-	args = parse_args()
-
 	# setup logging
 	if args.debug:
 		logfile = sys.stdout
+		level = logging.DEBUG
 	else:
 		logfile = open(logfilename, 'a')
 		global old_stdout, old_stderr
@@ -99,18 +110,21 @@ if __name__ == '__main__':
 		old_stderr = sys.stderr
 		sys.stdout = logfile
 		sys.stderr = logfile
+		level = logging.INFO
 
-	logging.basicConfig(stream=logfile, level=logging.INFO,
+	logging.basicConfig(stream=logfile, level=level,
 						format='%(asctime)s: %(message)s',
 						datefmt='%m/%d/%Y %I:%M:%S %p')
 
-	logging.info('Vmesh version: %d.%d.%d' % version)
-	logging.info('Python version: %d.%d.%d' % sys.version_info[:3])
+	logging.info('Vmesh %d.%d.%d starting (python %d.%d.%d)' % (version + sys.version_info[:3]))
+	logging.debug('sys.argv: %s', str(sys.argv))
 
-	if not args.skip_update:
-		logging.info("Upgrading and installing...")
-		upgrade_and_install()
-	else:
-		logging.info("Running user_code...")
-		user_code()
+if __name__ == '__main__':
+	import sys
+	global args
+	args = parse_args()
+	
+	setup_logging()
+	upgrade_and_install()
+	user_code()
 
