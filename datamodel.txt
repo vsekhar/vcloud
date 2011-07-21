@@ -10,6 +10,20 @@ Machine (1 instance of vmesh, 1 island per CPU):
 Vmesh handles interchange between islands on the same machine, interchange between
 islands on other machines, and machine memory/cpu management
 
+Code
+----
+Issue: what if there is an update to python or modules python script uses?
+ -stick with bash script?
+
+Python script in user-data (ubuntu base server instances include python 2.7 & boto)
+ - #!/usr/bin/python
+Get access credentials somehow?
+ - credentials have to live in user-data if spot instances are to be used
+Get my software and unpack to local directory
+Update python path to include that local directory
+Import my software modules
+ - transfer control flow to imported_module.main()
+
 
 VMESH run-process
 -----------------
@@ -53,6 +67,9 @@ VMESH run-process
 10. Vmesh logs own and island stats to a queue for real-time processing (if specified in config):
 	boto.sqs.send_message('vmesh_log', [json data])
 
+11. If a new *ROOT CONFIG* becomes available (new run scripts etc.) the instance
+	should checkpoint and shut down (spot instances will start up another one with
+	the new root config).
 
 Administration
 --------------
@@ -73,4 +90,11 @@ Config specifies:
 Administrator can monitor in real-time by reading from SQS
 
 Administrator can scrape historic logs by dumping from S3, and process (via mapreduce?)
+
+
+TODO's
+------
+
+Use AWS SimpleDB for discovery and logging (checkpoints go to S3, with pointers
+in SimpleDB).
 
