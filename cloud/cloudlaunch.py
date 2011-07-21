@@ -14,69 +14,111 @@ security_groups=['default', 'Cluster']
 
 include_prefix = '### VMESH_INCLUDE:'
 
-def user_data_script(filename):
-	import os, gzip, tempfile
-	combined_temp_file = tempfile.NamedTemporaryFile()
-	user_data_gzip = gzip.GzipFile(fileobj=combined_temp_file, mode='wt')
-
-	with open(os.path.dirname(__file__) + os.sep + filename) as user_data:
+def process_script(script_filename):
+	import os
+	ret = ''
+	with open(script_filename) as user_data:
 		for line in user_data:
 			if line.strip().startswith(include_prefix):
-				filename = line[len(include_prefix):].strip()
-				namespacename, _, _ = filename.partition('.')
-				user_data_gzip.write('class %s:\n' % namespacename)
-				with open(os.path.dirname(__file__) + os.sep + filename) as includefile:
+				include_filename = line[len(include_prefix):].strip()
+				namespacename, _, _ = include_filename.partition('.')
+				ret += 'class %s:\n' % namespacename
+				with open(os.path.dirname(script_filename) + os.sep + include_filename) as includefile:
 					for includeline in includefile:
-						user_data_gzip.write('\t' + includeline)
+						ret += '\t' + includeline
 			else:
-				user_data_gzip.write(line)
-
-	user_data_gzip.close()
-	combined_temp_file.flush()
-	return combined_temp_file
-
-def print_gzipped_file(filename):
-	import gzip
-	with gzip.GzipFile(filename=filename, mode='rt') as readfile:
-		for line in readfile:
-			print line,
-
-def launch(user_data):
-	import boto
-	conn = boto.connect_ec2()
-	reservation = conn.request_spot_instances(
-							price=price,
-							image_id=ami,
-							count=count,
-							instance_type=instance_type,
-							type='persistent' if persistent else 'one-time',
-							key_name=keypair_name,
-							security_groups=security_groups,
-							user_data=user_data
-							)
-	return reservation
-
-def load_binary_data(datafilename):
-	ret = b''
-	with open(datafilename, mode='rb') as data_file:
-		while True:
-			data = data_file.read(1024*1024)
-			if len(data):
-				ret += data
-			else:
-				break
+				ret += line
 	return ret
 
-def main():
-	import sys
-	# create the user-data-script (merging in includes)
-	if len(sys.argv) > 1:
-		filename = sys.argv[1]
+def launch_remote(user_data):
+	import boto, StringIO, gzip
+	global args
+	conn = boto.connect_ec2()
+	sio = StringIO.StringIO()
+	zipper = gzip.GzipFile(fileobj=sio, mode='wb')
+	zipper.write(user_data)
+	zipper.close()
+	zipped_user_data = sio.getvalue()
+	sio.close()
+	if args.debug:
+		with open('data', mode='wb') as f:
+			f.write(zipped_user_data)
+	elif args.spot_instances:
+		reservation = conn.request_spot_instances(
+								price=price,
+								image_id=ami,
+								count=count,
+								instance_type=instance_type,
+								type='persistent' if persistent else 'one-time',
+								key_name=keypair_name,
+								security_groups=security_groups,
+								user_data=zipped_user_data
+								)
 	else:
-		filename = 'user-data-script.py'
-	gzipped_file = user_data_script(filename)
-	# print_gzipped_file(gzipped_file.name)
-	spot_resv = launch(user_data=load_binary_data(gzipped_file.name))
+		reservation = conn.run_instances(
+								image_id=ami,
+								min_count=count,
+								max_count=count,
+								key_name=keypair_name,
+								security_groups=security_groups,
+								instance_type=instance_type,
+								user_data=zipped_user_data
+								)
+	return reservation
+
+class ScopedTemporaryFile:
+	def __init__(self):
+		import tempfile
+		self.file = tempfile.NamedTemporaryFile(delete=False)
+		self.name = self.file.name
+
+	def __del__(self):
+		import os
+		if not self.file.closed:
+			self.close()
+		os.remove(self.name)
+
+	def close(self):
+		self.file.flush()
+		self.file.close()
+
+	def mkexec(self):
+		import os, stat
+		os.fchmod(self.file.fileno(), stat.S_IEXEC | stat.S_IREAD | stat.S_IWRITE)
+
+	def name(self):
+		return self.file.name
+
+
+def launch_local(user_data):
+	import tempfile, os, stat
+	tf = ScopedTemporaryFile()
+	tf.file.writelines(user_data)
+	tf.mkexec()
+	tf.close()
+	import subprocess, sys
+	proc = subprocess.Popen([tf.name, '--local'], stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
+	proc.wait()
+
+def parse_args():
+	import argparse
+
+	parser = argparse.ArgumentParser(description='cloudlaunch.py: launch scripts in the cloud')
+	parser.add_argument('-l', '--local', default=False, action='store_true', help='run locally')
+	parser.add_argument('-d', '--debug', default=False, action='store_true', help='run in debug mode')
+	parser.add_argument('-f', '--script-file', type=str, default='./userdatascript.py', help='script file to process and launch (default=./user-data-script.py)')
+	parser.add_argument('-s', '--spot-instances', default=False, action='store_true', help='run with spot instances instead of on-demand')
+	return parser.parse_args()
+
+def main():
+	global args
+	args = parse_args()
+	script = process_script(args.script_file)
+	if args.local:
+		launch_local(script)
+	else:
+		resv = launch_remote(user_data=script)
+		print resv
 
 if __name__ == '__main__':
 	main()
