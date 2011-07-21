@@ -9,6 +9,9 @@
 *.pyc
 *.pyo
 
+# Access credentials
+CREDENTIALS.py
+
 # editor files
 *~
 
