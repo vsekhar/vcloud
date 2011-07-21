@@ -22,8 +22,8 @@ def get_metadata():
 	if args.debug:
 		return {'hostname': 'localhost', 'index': 0}
 	else:
-		import boto
-		return boto.get_instance_metadata()
+		import boto.utils
+		return boto.utils.get_instance_metadata()
 
 def user_code():
 	import boto
