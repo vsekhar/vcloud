@@ -15,23 +15,13 @@ def get_archive():
 	pass
 
 def register_node():
+	import boto
 	pass
 
-def get_metadata():
-	global args
-	if args.debug:
-		return {'hostname': 'localhost', 'index': 0}
-	else:
-		import boto.utils
-		return boto.utils.get_instance_metadata()
-
 def user_code():
-	import boto
 	global metadata
 	metadata = get_metadata()
-	hostname = metadata['hostname']
-	logging.info('Hostname: %s' % hostname)
-
+	logging.info('Public hostname: %s' % metadata['public-hostname'])
 
 	# get archive
 	# register node
@@ -49,6 +39,16 @@ def parse_args():
 	parser.add_argument('--vmesh-trying-for-sudo', default=False, action='store_true', help='INTERNAL: flag used in permissions escalation')
 
 	return parser.parse_args()
+
+def get_metadata():
+	global args
+	if args.debug:
+		return {'public-hostname': 'localhost',
+				'ami-launch-index': 0,
+				'ami-id': 'ami-localdebug'}
+	else:
+		import boto.utils
+		return boto.utils.get_instance_metadata()
 
 def restart(with_sudo=False, add_args=[], remove_args=[]):
 	import os, sys
@@ -102,7 +102,6 @@ def setup_logging():
 	# setup logging
 	if args.debug:
 		logfile = sys.stdout
-		level = logging.DEBUG
 	else:
 		logfile = open(logfilename, 'a')
 		global old_stdout, old_stderr
@@ -110,13 +109,12 @@ def setup_logging():
 		old_stderr = sys.stderr
 		sys.stdout = logfile
 		sys.stderr = logfile
-		level = logging.INFO
 
-	logging.basicConfig(stream=logfile, level=level,
+	logging.basicConfig(stream=logfile, level=logging.DEBUG,
 						format='%(asctime)s: %(message)s',
 						datefmt='%m/%d/%Y %I:%M:%S %p')
 
-	logging.info('Vmesh %d.%d.%d starting (python %d.%d.%d)' % (version + sys.version_info[:3]))
+	logging.info('### Vmesh %d.%d.%d starting (python %d.%d.%d) ###' % (version + sys.version_info[:3]))
 	logging.debug('sys.argv: %s', str(sys.argv))
 
 if __name__ == '__main__':
@@ -126,5 +124,6 @@ if __name__ == '__main__':
 	
 	setup_logging()
 	upgrade_and_install()
+	#de-escalate privilages
 	user_code()
 
