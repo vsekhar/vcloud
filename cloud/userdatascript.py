@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-packages = ['python-boto']
+packages = ()
 
 logfilename = 'user-data-script.log'
 vmesh_domain = 'vmesh'
@@ -64,6 +64,8 @@ def user_code():
 # End user modifiables
 ################################################
 
+internal_packages = ('python-boto')
+
 def parse_args():
 	import argparse
 
@@ -117,7 +119,8 @@ def upgrade_and_install():
 			cache.update()
 			cache.open(None)
 			cache.upgrade()
-			for pkg in packages:
+			install_packages = set(internal_packages) + set(packages)
+			for pkg in install_packages:
 				cache[pkg].mark_install()
 			logging.info('Upgrading and installing...')
 			cache.commit()
