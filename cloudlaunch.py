@@ -52,7 +52,7 @@ def upload_package():
 	global args
 
 	# prepare and upload package
-	with tempfile.TemporaryFile() as tf:
+	with tempfile.SpooledTemporaryFile(max_size=10240) as tf:
 		tar = tarfile.open(fileobj=tf, mode='w:gz')
 		tar.add(name=args.package_directory, arcname='.', recursive=True)
 		tar.close()
