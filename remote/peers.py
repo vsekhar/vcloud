@@ -1,8 +1,8 @@
 import aws, logging, args
 
 def get_peers():
-	dom = aws.get_sdb_domain(args.domain)
-	return dom.select("SELECT timestamp FROM %s WHERE timestamp is not null ORDER BY timestamp ASC" % args.domain)
+	dom = aws.get_sdb_domain(args.sdb_domain)
+	return dom.select("SELECT timestamp FROM %s WHERE timestamp is not null ORDER BY timestamp ASC" % args.sdb_domain)
 
 def purge_old_peers(lifetime=3600):
 	import time
@@ -15,9 +15,10 @@ def purge_old_peers(lifetime=3600):
 		else:
 			break # peers are sorted oldest-first
 
-def register_node(hostname):
-	logging.info('Registering: %s' % (aws.metadata['public-hostname']))
-	dom = aws.get_sdb_domain(args.domain)
+def register_node():
+	hostname = aws.metadata['public-hostname']
+	logging.info('Registering: %s' % hostname)
+	dom = aws.get_sdb_domain(args.sdb_domain)
 	record = dom.get_item(hostname)
 	if record is None:
 		record = dom.new_item(hostname)

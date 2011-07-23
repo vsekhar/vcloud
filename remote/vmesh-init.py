@@ -2,13 +2,12 @@
 
 version = (1,0,0)
 
-import args, aws, peers
+import args, peers
 import logging
 
 def setup_logging():
-	import sys, time
-	global args
 	# setup logging
+	import sys, time
 	if args.local:
 		logfile = sys.stdout
 	else:
@@ -24,12 +23,13 @@ def setup_logging():
 						datefmt='%m/%d/%Y %I:%M:%S %p')
 
 	logging.getLogger('boto').setLevel(logging.CRITICAL)
-	logging.info('vmesh-init.py %d.%d.%d starting (python %d.%d.%d, timestamp %d)' % (version + sys.version_info[:3] + (time.time(),)))
+	logging.info('vmesh logging %d.%d.%d starting (python %d.%d.%d, timestamp %d)' % (version + sys.version_info[:3] + (time.time(),)))
 	logging.debug('argv: %s' % args.safeargv)
+
 
 if __name__ == '__main__':
 	setup_logging()
-	peers.register_node(aws.metadata['public-hostname'])
+	peers.register_node()
 	peers.purge_old_peers()
 	if args.local:
 		peers.print_hosts()

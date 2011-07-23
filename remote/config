@@ -1,8 +1,7 @@
 [vmesh]
 connections=3
 timeout=60
-port=8081
-secret=aabcdeeef
+sdb_domain=vmesh
 
 [kernel]
 
