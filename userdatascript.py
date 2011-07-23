@@ -3,7 +3,6 @@
 packages = ()
 
 logfilename = 'user-data-script.log'
-vmesh_domain = 'vmesh'
 version = (1,0,0)
 
 ### VMESH_INCLUDE: CREDENTIALS.py
@@ -11,104 +10,68 @@ version = (1,0,0)
 # access them as CREDENTIALS.access_key, etc.
 
 import logging
+from contextlib import contextmanager
 
-class ScopedTemporaryFile:
-	def __init__(self):
-		import tempfile
-		self.file = tempfile.NamedTemporaryFile(delete=False)
-		self.name = self.file.name
+@contextmanager
+def NamedTemporaryDirectory(delete=True):
+	import tempfile
+	dirname = tempfile.mkdtemp()
+	yield dirname
+	if delete:
+		import shutil
+		shutil.rmtree(dirname)
 
-	def __del__(self):
-		import os
-		if not self.file.closed:
-			self.close()
-		os.remove(self.name)
-
-	def close(self):
-		self.file.flush()
-		self.file.close()
-
-	def mkexec(self):
-		import os, stat
-		os.fchmod(self.file.fileno(), stat.S_IEXEC | stat.S_IREAD | stat.S_IWRITE)
-
-	def name(self):
-		return self.file.name
-
-def get_archive():
-	import boto, tempfile
-	global args
-	conn = boto.connect_s3()
-	b = conn.get_bucket(CREDENTIALS.bucket)
-	if not b:
-		logging.critical('Bucket %s does not exist' % CREDENTIALS.bucket)
-		exit(1)
-	k = b.get_key(CREDENTIALS.package)
-	if not k:
-		logging.critical('Key %s in bucket %s does not exist' % (CREDENTIALS.package, CREDENTIALS.bucket))
-		exit(1)
-
-	# download progress logging
-	def report_download(got, total):
-		logging.info('Downloading %s: %d\%' % (CREDENTIALS.package, got/total))
-
-	tf = ScopedTemporaryFile()
-	k.get_contents_to_file(tf.file, cb=report_download)
-	tf.mkexec()
-	tf.close()
-	td = tempfile.mkdtemp()
-	
-
-def get_sdb_domain():
+def get_s3_bucket():
 	import boto
 	global args
 	if args.local:
-		sdb = boto.connect_sdb()
+		s3conn = boto.connect_s3()
 	else:
-		sdb = boto.connect_sdb(CREDENTIALS.access_key, CREDENTIALS.secret_key)
-	dom = sdb.lookup(vmesh_domain)
-	if dom is None:
-		dom = sdb.create_domain(vmesh_domain)
-	return dom
+		s3conn = boto.connect_s3(CREDENTIALS.access_key, CREDENTIALS.secret_key)
+	b = s3conn.get_bucket(CREDENTIALS.bucket)
+	if not b:
+		logging.critical('Bucket %s does not exist' % CREDENTIALS.bucket)
+		exit(1)
+	return b
 
-def register_node(hostname):
-	dom = get_sdb_domain()
-	record = dom.get_item(hostname)
-	if record is None:
-		record = dom.new_item(hostname)
-	import time
-	cur_time = time.time()
-	record['timestamp'] = cur_time
-	record.save()
-	
-	# purge old records
-	lifetime = 3600 # def = 3600 = 1 hour
-	query = dom.select("SELECT timestamp FROM %s WHERE timestamp is not null ORDER BY timestamp ASC" % vmesh_domain)
-	for item in query:
-		if float(item['timestamp']) < cur_time - lifetime:
-			item.delete()
-		else:
-			break # it's a sorted list
+def run_package():
+	import tarfile, tempfile, shutil, os
+	global args
 
-def print_hosts():
-	dom = get_sdb_domain()
-	for item in dom:
-		print item.name, item['timestamp']
+	bucket = get_s3_bucket()
+	key = bucket.get_key(CREDENTIALS.package)
+	if not key:
+		logging.critical('Key %s in bucket %s does not exist' % (CREDENTIALS.package, CREDENTIALS.bucket))
+		exit(1)
 
-def user_code():
-	global metadata, args
-	metadata = get_metadata()
-	logging.info('Registering: %s' % (metadata['public-hostname']))
-	register_node(metadata['public-hostname'])
-	if args.local:
-		print_hosts()
-	# get archive
+	with tempfile.SpooledTemporaryFile(max_size=10240, mode='w+b') as tf:
+		with NamedTemporaryDirectory() as td:
+			logging.info('Downloading %s from bucket %s' % (CREDENTIALS.package, CREDENTIALS.bucket))
+			key.get_contents_to_file(tf)
+			tf.seek(0)
+			tar = tarfile.open(fileobj=tf)
+			tar.extractall(path=td)	
+			import subprocess, sys
+			command = [td + os.sep + CREDENTIALS.script]
+			command += ['--log=%s' % logfilename]
+			command += ['--access-key=\'%s\'' % CREDENTIALS.access_key]
+			command += ['--secret-key=\'%s\'' % CREDENTIALS.secret_key]
+			if args.local:
+				command += ['--local']
+			logging.shutdown()
+			sys.stdout.flush()
+			proc = subprocess.Popen(command, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
+			errno = proc.wait()
+			if args.local:
+				print "Press any key to clean-up",
+				raw_input()
+	exit(errno)
 
 ################################################
 # End user modifiables
 ################################################
 
-internal_packages = ('python-boto')
+internal_packages = ('python-boto',)
 
 def parse_args():
 	import argparse
@@ -119,16 +82,6 @@ def parse_args():
 	parser.add_argument('--vmesh-trying-for-sudo', default=False, action='store_true', help='INTERNAL: flag used in permissions escalation')
 
 	return parser.parse_args()
-
-def get_metadata():
-	global args
-	if args.local:
-		return {'public-hostname': 'localhost',
-				'ami-launch-index': 0,
-				'ami-id': 'ami-localdebug'}
-	else:
-		import boto.utils
-		return boto.utils.get_instance_metadata()
 
 def restart(with_sudo=False, add_args=[], remove_args=[]):
 	import os, sys
@@ -163,7 +116,7 @@ def upgrade_and_install():
 			cache.update()
 			cache.open(None)
 			cache.upgrade()
-			install_packages = set(internal_packages) + set(packages)
+			install_packages = set(internal_packages) | set(packages)
 			for pkg in install_packages:
 				cache[pkg].mark_install()
 			logging.info('Upgrading and installing...')
@@ -205,6 +158,6 @@ if __name__ == '__main__':
 	
 	setup_logging()
 	upgrade_and_install()
-	#de-escalate privilages
-	user_code()
+	# de-escalate privilages?
+	run_package()
 
