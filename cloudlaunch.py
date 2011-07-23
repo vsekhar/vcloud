@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 """
 Requires boto 2.0+ (boto1.9b, included with Ubuntu 11.04, has a bug

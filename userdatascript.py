@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 packages = ()
 logfilename = 'user-data-script.log'
