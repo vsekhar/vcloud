@@ -12,16 +12,6 @@ logfilename = 'user-data-script.log'
 # access them as CREDENTIALS.access_key, etc.
 
 import logging
-from contextlib import contextmanager
-
-@contextmanager
-def NamedTemporaryDirectory(delete=True):
-	import tempfile
-	dirname = tempfile.mkdtemp()
-	yield dirname
-	if delete:
-		import shutil
-		shutil.rmtree(dirname)
 
 def get_s3_bucket():
 	import boto
@@ -47,26 +37,28 @@ def run_package():
 		exit(1)
 
 	with tempfile.SpooledTemporaryFile(max_size=10240, mode='w+b') as tf:
-		with NamedTemporaryDirectory() as td:
-			logging.info('Downloading %s from bucket %s' % (CREDENTIALS.package, CREDENTIALS.bucket))
-			key.get_contents_to_file(tf)
-			tf.seek(0)
-			tar = tarfile.open(fileobj=tf)
-			tar.extractall(path=td)	
-			import subprocess, sys
-			command = [td + os.sep + CREDENTIALS.script]
-			command += ['--log=%s' % logfilename]
-			command += ['--access-key=\'%s\'' % CREDENTIALS.access_key]
-			command += ['--secret-key=\'%s\'' % CREDENTIALS.secret_key]
-			if args.local:
-				command += ['--local']
-			logging.shutdown()
-			sys.stdout.flush()
-			proc = subprocess.Popen(command, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
-			errno = proc.wait()
-			if args.local:
-				print "Press any key to clean-up",
-				raw_input()
+		td = tempfile.mkdtemp()
+		logging.info('Downloading %s from bucket %s' % (CREDENTIALS.package, CREDENTIALS.bucket))
+		key.get_contents_to_file(tf)
+		tf.seek(0)
+		tar = tarfile.open(fileobj=tf)
+		tar.extractall(path=td)	
+		import subprocess, sys
+		command = [td + os.sep + CREDENTIALS.script]
+		command += ['--log=%s' % logfilename]
+		command += ['--access-key=%s' % CREDENTIALS.access_key]
+		command += ['--secret-key=%s' % CREDENTIALS.secret_key]
+		if args.local:
+			command += ['--local']
+		logging.shutdown()
+		sys.stdout.flush()
+		proc = subprocess.Popen(command, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
+		errno = proc.wait()
+		if args.local:
+			import shutil
+			print "Press any key to clean-up",
+			raw_input()
+			shutil.rmtree(td)
 	exit(errno)
 
 internal_packages = ('python-boto',)
