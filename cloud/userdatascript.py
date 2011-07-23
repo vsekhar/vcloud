@@ -17,7 +17,11 @@ def get_archive():
 
 def get_domain():
 	import boto
-	sdb = boto.connect_sdb(CREDENTIALS.access_key, CREDENTIALS.secret_key)
+	global args
+	if args.local:
+		sdb = boto.connect_sdb()
+	else:
+		sdb = boto.connect_sdb(CREDENTIALS.access_key, CREDENTIALS.secret_key)
 	dom = sdb.lookup(vmesh_domain)
 	if dom is None:
 		dom = sdb.create_domain(vmesh_domain)
