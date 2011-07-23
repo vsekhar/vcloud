@@ -1,5 +1,16 @@
 #!/usr/bin/python
 
+"""
+Requires boto 2.0+ (boto1.9b, included with Ubuntu 11.04, has a bug
+that makes it impossible to make persistent spot instance requests)
+
+NB: boto 1.9b will work on remote machines, only this script needs 2.0
+
+Get and use latest boto using:
+	git clone git://github.com/boto/boto.git
+	export PYTHONPATH=$PYTHONPATH:/<path_to_boto>/boto  # in .bashrc
+"""
+
 import boto
 import sys
 
