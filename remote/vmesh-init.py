@@ -30,6 +30,7 @@ def setup_logging():
 if __name__ == '__main__':
 	setup_logging()
 	peers.register_node(aws.metadata['public-hostname'])
+	peers.purge_old_peers()
 	if args.local:
 		peers.print_hosts()
 
