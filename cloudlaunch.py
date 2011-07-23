@@ -121,6 +121,7 @@ def parse_args():
 
 	parser = argparse.ArgumentParser(description='cloudlaunch.py: launch scripts in the cloud')
 	parser.add_argument('-l', '--local', default=False, action='store_true', help='run locally')
+	parser.add_argument('-u', '--upload-only', default=False, action='store_true', help='only upload the package, do not start instances')
 	parser.add_argument('-f', '--script-file', type=str, default='./userdatascript.py', help='script file to process and launch (default=./user-data-script.py)')
 	parser.add_argument('-m', '--ami', type=str, default='ami-e2af508b', help='AMI to start (default=\'ami-e2af508b\', Ubuntu 11.04 Natty Server 32-bit us-east-1)')
 	parser.add_argument('-n', '--count', type=int, default=1, help='number of instances to start (default=1)')
@@ -146,13 +147,14 @@ def parse_args():
 def main():
 	global args
 	args = parse_args()
-	script = process_script(args.script_file)
 	upload_package()
-	if args.local:
-		launch_local(script)
-	else:
-		resv = launch_remote(user_data=script)
-		print resv
+	if not args.upload_only:
+		script = process_script(args.script_file)
+		if args.local:
+			launch_local(script)
+		else:
+			resv = launch_remote(user_data=script)
+			print resv
 
 if __name__ == '__main__':
 	main()
