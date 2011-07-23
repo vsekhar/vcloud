@@ -12,10 +12,54 @@ version = (1,0,0)
 
 import logging
 
-def get_archive():
-	pass
+class ScopedTemporaryFile:
+	def __init__(self):
+		import tempfile
+		self.file = tempfile.NamedTemporaryFile(delete=False)
+		self.name = self.file.name
 
-def get_domain():
+	def __del__(self):
+		import os
+		if not self.file.closed:
+			self.close()
+		os.remove(self.name)
+
+	def close(self):
+		self.file.flush()
+		self.file.close()
+
+	def mkexec(self):
+		import os, stat
+		os.fchmod(self.file.fileno(), stat.S_IEXEC | stat.S_IREAD | stat.S_IWRITE)
+
+	def name(self):
+		return self.file.name
+
+def get_archive():
+	import boto, tempfile
+	global args
+	conn = boto.connect_s3()
+	b = conn.get_bucket(CREDENTIALS.bucket)
+	if not b:
+		logging.critical('Bucket %s does not exist' % CREDENTIALS.bucket)
+		exit(1)
+	k = b.get_key(CREDENTIALS.package)
+	if not k:
+		logging.critical('Key %s in bucket %s does not exist' % (CREDENTIALS.package, CREDENTIALS.bucket))
+		exit(1)
+
+	# download progress logging
+	def report_download(got, total):
+		logging.info('Downloading %s: %d\%' % (CREDENTIALS.package, got/total))
+
+	tf = ScopedTemporaryFile()
+	k.get_contents_to_file(tf.file, cb=report_download)
+	tf.mkexec()
+	tf.close()
+	td = tempfile.mkdtemp()
+	
+
+def get_sdb_domain():
 	import boto
 	global args
 	if args.local:
@@ -28,7 +72,7 @@ def get_domain():
 	return dom
 
 def register_node(hostname):
-	dom = get_domain()
+	dom = get_sdb_domain()
 	record = dom.get_item(hostname)
 	if record is None:
 		record = dom.new_item(hostname)
@@ -47,7 +91,7 @@ def register_node(hostname):
 			break # it's a sorted list
 
 def print_hosts():
-	dom = get_domain()
+	dom = get_sdb_domain()
 	for item in dom:
 		print item.name, item['timestamp']
 
