@@ -2,7 +2,6 @@
 
 packages = ()
 logfilename = 'user-data-script.log'
-version = (1,0,0)
 
 ################################################
 # End user modifiables
