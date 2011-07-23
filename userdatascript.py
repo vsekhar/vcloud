@@ -148,7 +148,7 @@ def setup_logging():
 						datefmt='%m/%d/%Y %I:%M:%S %p')
 
 	logging.getLogger('boto').setLevel(logging.CRITICAL)
-	logging.info('### Vmesh %d.%d.%d starting (python %d.%d.%d, timestamp %d) ###' % (version + sys.version_info[:3] + (time.time(),)))
+	logging.info('### Vmesh user-data script starting (python %d.%d.%d, timestamp %d) ###' % (sys.version_info[:3] + (time.time(),)))
 	logging.debug('sys.argv: %s', str(sys.argv))
 
 if __name__ == '__main__':
