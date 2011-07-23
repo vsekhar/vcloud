@@ -1,9 +1,12 @@
 #!/usr/bin/python
 
 packages = ()
-
 logfilename = 'user-data-script.log'
 version = (1,0,0)
+
+################################################
+# End user modifiables
+################################################
 
 ### VMESH_INCLUDE: CREDENTIALS.py
 # above line gets you access_key, secret_key, bucket, package, and script,
@@ -66,10 +69,6 @@ def run_package():
 				print "Press any key to clean-up",
 				raw_input()
 	exit(errno)
-
-################################################
-# End user modifiables
-################################################
 
 internal_packages = ('python-boto',)
 
