@@ -89,18 +89,36 @@ class ConnectionHandler(BaseConnectionHandler):
 			pass
 		BaseConnectionHandler.handle_close(self)
 
+	def keep_me(self):
+		connections[self.peer_id] = self
+		unknown_connections.discard(self)
+		self.send_msg('id_ack')
+
 	def my_id_is(self, payload):
-		if payload == node_id:
+		self.peer_id = payload
+		if self.peer_id == node_id:
 			logger.warning('self-connection detected: dropping')
 			self.close_when_done()
-		elif payload in connections:
-			logger.debug('duplicate connection: dropping')
-			self.close_when_done()
+		elif self.peer_id in connections:
+			"""
+			To help resolve race conditions where two nodes try to simutaneously
+			connect to each other, we randomly choose a connection to drop.
+			Half the time, both nodes will drop the same connection, half the
+			time they'll drop different connections (resulting in both being
+			dropped and requiring a re-attempt).
+			"""
+			if random.choice((True, False)):
+				# drop this
+				logger.debug('duplicate connection: dropping unknown connection')
+				self.close_when_done()
+			else:
+				# drop other
+				logger.debug('duplicate connection: dropping known connection')
+				connections[self.peer_id].close_when_done()
+				self.keep_me()
 		else:
-			self.peer_id = payload
-			connections[self.peer_id] = self
-			unknown_connections.discard(self)
-			self.send_msg('id_ack')
+			# regular new node, so stash the connection
+			self.keep_me()
 
 	def id_ack(self, _):
 		connections[self.peer_id] = self
