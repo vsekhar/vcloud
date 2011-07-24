@@ -134,12 +134,16 @@ def run_package():
 			command += ['--local']
 		logging.shutdown()
 		sys.stdout.flush()
-		proc = subprocess.Popen(command, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
-		errno = proc.wait()
-		if args.debug:
+		try:
+			proc = subprocess.Popen(command, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
+			errno = proc.wait()
+		except KeyboardInterrupt:
+			errno = 1
+		if args.local:
+			if args.debug:
+				print "Press any key to clean-up",
+				raw_input()
 			import shutil
-			print "Press any key to clean-up",
-			raw_input()
 			shutil.rmtree(td)
 	exit(errno)
 

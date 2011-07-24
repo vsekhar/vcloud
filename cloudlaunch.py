@@ -120,8 +120,12 @@ def launch_local(user_data):
 	new_args = [tf.name, '--local']
 	if args.debug:
 		new_args += ['--debug']
-	proc = subprocess.Popen(new_args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
-	exit(proc.wait())
+	try:
+		proc = subprocess.Popen(new_args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
+		errno = proc.wait()
+	except KeyboardInterrupt:
+		errno = 1
+	exit(errno)
 
 def launch_remote(user_data):
 	import boto, StringIO, gzip, contextlib
