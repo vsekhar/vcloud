@@ -1,8 +1,9 @@
 import asyncore
+import socket
 from connectionhandler import ConnectionHandler
 
 class ServerSocket(asyncore.dispatcher):
-    def __init__(self, bind_address, port):
+    def __init__(self, bind_address='', port=0):
         asyncore.dispatcher.__init__(self)
         self.create_socket(asyncore.socket.AF_INET,
                            asyncore.socket.SOCK_STREAM)
@@ -13,9 +14,17 @@ class ServerSocket(asyncore.dispatcher):
         self.listen(1)
 
     def handle_accept(self):
-        (sock, _) = self.accept()
-        ConnectionHandler(sock)
+        sock,_ = self.accept()
+        ConnectionHandler(socket=sock, server=self)
 
     def handle_close(self):
         self.close()
-        
+
+poll = asyncore.poll
+connections = asyncore.socket_map
+serversocket = ServerSocket()
+
+def new_connection(host_port):
+	sock = socket.create_connection(host_port)
+	ConnectionHandler(socket=sock, server=serversocket)
+
