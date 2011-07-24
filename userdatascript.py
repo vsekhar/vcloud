@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-packages = ('python-twisted',)
+packages = []
 logfilename = 'user-data-script.log'
 
 ################################################
