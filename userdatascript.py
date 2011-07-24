@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-packages = ()
+packages = ('python-twisted',)
 logfilename = 'user-data-script.log'
 
 ################################################
@@ -54,7 +54,7 @@ def run_package():
 		sys.stdout.flush()
 		proc = subprocess.Popen(command, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
 		errno = proc.wait()
-		if args.local:
+		if args.debug:
 			import shutil
 			print "Press any key to clean-up",
 			raw_input()
@@ -67,7 +67,8 @@ def parse_args():
 	import argparse
 
 	parser = argparse.ArgumentParser(description='user-data-script.py: initial python instance startup script')
-	parser.add_argument('--local', default=False, action='store_true', help='run in local/debug mode (log to screen, no AWS metadata)')
+	parser.add_argument('--local', default=False, action='store_true', help='run in local mode (log to screen, no AWS metadata)')
+	parser.add_argument('--debug', default=False, action='store_true', help='run in debug mode (additional reporting, pauses before cleanup, etc.)')
 	parser.add_argument('--skip-update', default=False, action='store_true', help='skip apt package updates')
 	parser.add_argument('--vmesh-trying-for-sudo', default=False, action='store_true', help='INTERNAL: flag used in permissions escalation')
 

@@ -124,7 +124,10 @@ def launch_local(user_data):
 	tf.close()
 	import subprocess, sys
 	sys.stdout.flush()
-	proc = subprocess.Popen([tf.name, '--local'], stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
+	new_args = [tf.name, '--local']
+	if args.debug:
+		new_args += ['--debug']
+	proc = subprocess.Popen(new_args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
 	exit(proc.wait())
 
 def parse_args():
