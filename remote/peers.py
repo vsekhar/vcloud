@@ -9,8 +9,6 @@ import logger
 import args
 import aws
 
-COMMAND_TERMINATOR = b'\n'
-
 class Message:
 	def __init__(self, cmd, payload=None):
 		self.cmd = cmd
@@ -24,9 +22,12 @@ class Message:
 # Requires sub-class to overload dispatch() for actual processing
 #
 class BaseConnectionHandler(async_chat):
+
+	COMMAND_TERMINATOR = b'\n'
+
 	def __init__(self, socket):
 		async_chat.__init__(self, sock=socket)
-		self.set_terminator(COMMAND_TERMINATOR)
+		self.set_terminator(self.COMMAND_TERMINATOR)
 		self.ibuffer=[]
 		self.update_timestamp()
 
@@ -39,7 +40,7 @@ class BaseConnectionHandler(async_chat):
 		if isinstance(self.get_terminator(), int):
 			# process binary, reset for ascii length parameter
 			self.dispatch(pickle.loads(data))
-			self.set_terminator(COMMAND_TERMINATOR)
+			self.set_terminator(self.COMMAND_TERMINATOR)
 
 		else:
 			# start collecting binary
@@ -60,7 +61,7 @@ class BaseConnectionHandler(async_chat):
 	def send_msg(self, cmd, payload=None):
 		data = pickle.dumps(Message(cmd=cmd, payload=payload))
 		msg_hdr = str(len(data))
-		msg_hdr = msg_hdr.encode('ascii') + COMMAND_TERMINATOR
+		msg_hdr = msg_hdr.encode('ascii') + self.COMMAND_TERMINATOR
 		self.push(msg_hdr + data)
 
 CHALLENGE = b'#CHALLENGE#'
