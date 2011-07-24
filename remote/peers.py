@@ -75,9 +75,8 @@ class ConnectionHandler(BaseConnectionHandler):
 	def __init__(self, socket, server, id=None):
 		BaseConnectionHandler.__init__(self, socket)
 		self.server = server
-
-		self.peer_id = id
 		unknown_connections.add(self)
+		self.peer_id = id
 		if self.peer_id is not None:
 			# Outgoing connection
 			self.send_msg('my_id_is', node_id)	# push my id to peer

@@ -16,12 +16,21 @@ if __name__ == '__main__':
 	if args.reset:
 		peers.clear_hosts()
 
-	# main run loop
+	# management intervals
 	peer_mgmt_interval = 3
 	peer_mgmt_time = time.time()
+
 	kernel_interval = 3
 	kernel_time = time.time()
+
+	clean_up_interval = 30
+	clean_up_time = time.time()
+
+	# initialization
 	peers.update_node()
+
+	# main run loop
+	# TODO: Need exit condition
 	while(1):
 		peers.poll()
 
@@ -37,11 +46,14 @@ if __name__ == '__main__':
 		# peer processing
 		if cur_time - peer_mgmt_time > peer_mgmt_interval:
 			peer_mgmt_time = cur_time
-			peers.purge_old_peers()
 			peers.top_up()
 			peers.update_node()
 			print 'connections: ',
 			for c in peers.connections.values():
 				print c.peer_id,
 			print " unknowns: %d" % len(peers.unknown_connections)
+
+		# clean-up
+		if cur_time - clean_up_time > clean_up_interval:
+			peers.purge_old_peers()
 
