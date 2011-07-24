@@ -2,6 +2,10 @@
 connections=3
 timeout=60
 sdb_domain=vmesh
+authentication_secret=abc1123123
+
+# Number of kernel processes to run (default is cpu_count * 2)
+# kernel_processes=4
 
 [kernel]
 

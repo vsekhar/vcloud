@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import argparse, ConfigParser, sys, os
 
 # create safe argv (for logging, etc.)
@@ -11,6 +13,7 @@ safeargv = map(hider, sys.argv)
 # parse command line
 parser = argparse.ArgumentParser(description='vmesh-init.py: initial package script')
 parser.add_argument('--local', default=False, action='store_true', help='run in local/debug mode (log to screen, no AWS metadata)')
+parser.add_argument('--reset', default=False, action='store_true', help='reset metadata and exit')
 parser.add_argument('--log', type=str, help='log file')
 parser.add_argument('--config-file', type=str, help='config file')
 parser.add_argument('--access-key', type=str, help='access key')
@@ -27,6 +30,13 @@ config.read(parsed_args.config_file)
 for option in config.options('vmesh'):
 	setattr(sys.modules[__name__], option, config.get('vmesh', option))
 
+# vmesh defaults
+try:
+	if kernel_processes < 1:
+		kernel_processes = 1
+except NameError:
+	kernel_processes = None
+
 # pull kernel config into args.kernel
 class kernel:
 	pass
@@ -36,4 +46,8 @@ for option in config.options('kernel'):
 # pull in command-line options (this is done after parsing the config file to
 # allow command-line options to override config file options)
 sys.modules[__name__].__dict__.update(parsed_args.__dict__)
+
+# debug
+if __name__ == '__main__':
+	print sys.modules[__name__].__dict__
 
