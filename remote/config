@@ -1,22 +1,25 @@
 ###############################################
 # Parameters associated with the mesh network
 ###############################################
-[vmesh]
 
 # Number of connections to try and maintain
-connections=3
+--connections=3
 
 # SDB domain to track mesh metadata
-sdb_domain=vmesh
+--sdb-domain=vmesh
 
 # Amount of time peer entries should stay in SDB (seconds)
-peer_entry_lifetime=120
+--peer-entry-lifetime=120
+
+# Service intervals (seconds)
+--peer-mgmt-interval=3
+--kernel-interval=3
+--clean-up-interval=30
 
 # Number of kernel processes to run (default is cpu_count * 2)
-# kernel_processes=4
+# --kernel_processes=4
 
 #############################################
 # Parameters associated with the run kernel
 #############################################
-[kernel]
 

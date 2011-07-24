@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import argparse, ConfigParser, sys, os
+import argparse, sys, os
 
 # create safe argv (for logging, etc.)
 def hider(x):
@@ -11,7 +11,7 @@ def hider(x):
 safeargv = map(hider, sys.argv)
 
 # parse command line
-parser = argparse.ArgumentParser(description='vmesh-init.py: initial package script')
+parser = argparse.ArgumentParser(description='vmesh-launch.py: initial package script')
 parser.add_argument('-l', '--local', default=False, action='store_true', help='run in local/debug mode (log to screen, no AWS metadata)')
 parser.add_argument('-c', '--reset', default=False, action='store_true', help='reset metadata at startup')
 parser.add_argument('--log', type=str, help='log file')
@@ -21,31 +21,24 @@ parser.add_argument('--secret-key', type=str, help='secret key')
 parsed_args = parser.parse_args()
 
 # parse config file
+config_parser = argparse.ArgumentParser(description='vmesh-launch config file parser')
+config_parser.add_argument('--connections', type=int, default=3)
+config_parser.add_argument('--sdb-domain', type=str, default='vmesh')
+config_parser.add_argument('--kernel-interval', type=int, default=3)
+config_parser.add_argument('--peer-mgmt-interval', type=int, default=3)
+config_parser.add_argument('--clean-up-interval', type=int, default=30)
+config_parser.add_argument('--peer-entry-lifetime', type=int, default=120)
+from multiprocessing import cpu_count
+config_parser.add_argument('--kernel-processes', type=int, default=cpu_count() * 2)
+
 if not parsed_args.config_file:
 	parsed_args.config_file = os.path.dirname(__file__) + os.sep + 'config'
-config = ConfigParser.ConfigParser()
-config.read(parsed_args.config_file)
+config_data = [line.strip() for line in open(parsed_args.config_file).readlines() if not line.startswith('#') and not line.strip() == '']
+config_args = config_parser.parse_args(config_data)
 
-# pull vmesh config into module namespace
-for option in config.options('vmesh'):
-	setattr(sys.modules[__name__], option, config.get('vmesh', option))
-
-# vmesh defaults
-try:
-	if kernel_processes < 1:
-		kernel_processes = 1
-except NameError:
-	kernel_processes = None
-
-# pull kernel config into args.kernel
-class kernel:
-	pass
-for option in config.options('kernel'):
-	setattr(kernel, option, config.get('kernel', option))
-
-# pull in command-line options (this is done after parsing the config file to
-# allow command-line options to override config file options)
-sys.modules[__name__].__dict__.update(parsed_args.__dict__)
+# pull args into modele namespace
+sys.modules[__name__].__dict__.update(config_args.__dict__)
+sys.modules[__name__].__dict__.update(parsed_args.__dict__) # command-line overrides config file
 
 # debug
 if __name__ == '__main__':
