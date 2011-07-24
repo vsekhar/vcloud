@@ -198,7 +198,7 @@ def print_peers():
 	for host in hosts():
 		print host.name, cur_time - float(host['timestamp'])
 
-def purge_old_peers(lifetime=3600):
+def purge_old_peers(lifetime=int(args.peer_entry_lifetime)):
 	import time
 	cur_time = time.time()
 	oldest_time = cur_time - lifetime

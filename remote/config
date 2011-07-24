@@ -9,6 +9,9 @@ connections=3
 # SDB domain to track mesh metadata
 sdb_domain=vmesh
 
+# Amount of time peer entries should stay in SDB (seconds)
+peer_entry_lifetime=120
+
 # Number of kernel processes to run (default is cpu_count * 2)
 # kernel_processes=4
 
