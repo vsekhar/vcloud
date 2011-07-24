@@ -1,11 +1,19 @@
+###############################################
+# Parameters associated with the mesh network
+###############################################
 [vmesh]
+
+# Number of connections to try and maintain
 connections=3
-timeout=60
+
+# SDB domain to track mesh metadata
 sdb_domain=vmesh
-authentication_secret=abc1123123
 
 # Number of kernel processes to run (default is cpu_count * 2)
 # kernel_processes=4
 
+#############################################
+# Parameters associated with the run kernel
+#############################################
 [kernel]
 
