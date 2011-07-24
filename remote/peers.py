@@ -64,11 +64,6 @@ class BaseConnectionHandler(async_chat):
 		msg_hdr = msg_hdr.encode('ascii') + self.COMMAND_TERMINATOR
 		self.push(msg_hdr + data)
 
-CHALLENGE = b'#CHALLENGE#'
-WELCOME = b'#WELCOME#'
-FAILURE = b'#FAILURE#'
-AUTH_MESSAGE_LENGTH = 32
-
 connections = {}
 unknown_connections = set()
 
@@ -79,7 +74,6 @@ class ConnectionHandler(BaseConnectionHandler):
 
 	def __init__(self, socket, server, id=None):
 		BaseConnectionHandler.__init__(self, socket)
-		self._auth_key = args.authentication_secret.encode()
 		self.server = server
 
 		self.peer_id = id
