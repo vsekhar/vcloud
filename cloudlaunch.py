@@ -16,30 +16,33 @@ import sys
 
 include_prefix = '### VMESH_INCLUDE:'
 
-class ScopedTemporaryFile:
-	def __init__(self, executable=False):
-		import tempfile
-		self.file = tempfile.NamedTemporaryFile(delete=False)
-		self.name = self.file.name
-		if executable:
-			self.mkexec()
+def parse_args():
+	import argparse
 
-	def __del__(self):
+	parser = argparse.ArgumentParser(description='cloudlaunch.py: launch scripts in the cloud')
+	parser.add_argument('-l', '--local', default=False, action='store_true', help='run locally')
+	parser.add_argument('-u', '--upload-only', default=False, action='store_true', help='only upload the package, do not start instances')
+	parser.add_argument('-f', '--script-file', type=str, default='./userdatascript.py', help='script file to process and launch (default=./user-data-script.py)')
+	parser.add_argument('-m', '--ami', type=str, default='ami-e2af508b', help='AMI to start (default=\'ami-e2af508b\', Ubuntu 11.04 Natty Server 32-bit us-east-1)')
+	parser.add_argument('-n', '--count', type=int, default=1, help='number of instances to start (default=1)')
+	parser.add_argument('-t', '--instance-type', type=str, default='m1.small', help='instance type (default=m1.small)')
+	parser.add_argument('-k', '--key-pair', type=str, default='cdk11744-nix', help='key pair name (default=cdk11744-nix)')
+	parser.add_argument('-g', '--security-group', type=str, action='append', help='enable security group for instances (default=\'default\')')
+	parser.add_argument('-s', '--spot-instances', default=False, action='store_true', help='run with spot instances (default is on-demand instances)')
+	parser.add_argument('-p', '--persistent', default=False, action='store_true', help='make request persistent (valid only for spot instance requests)')
+	parser.add_argument('-r', '--price', type=float, default=0.04, help='price (valid only for spot instance requests, default=0.04)')
+	parser.add_argument('-d', '--package-directory', type=str, help='startup directory to package and send to nodes (default=<script_dir>/remote)')
+	parser.add_argument('-b', '--debug', default=False, action='store_true', help='run in debug mode')
+	args = parser.parse_args()
+
+	# complex defaults
+	if not args.security_group:
+		args.security_group = ['default']
+	if not args.package_directory:
 		import os
-		if not self.file.closed:
-			self.close()
-		os.remove(self.name)
+		args.package_directory = os.path.dirname(__file__) + os.sep + 'remote/'
 
-	def close(self):
-		self.file.flush()
-		self.file.close()
-
-	def mkexec(self):
-		import os, stat
-		os.fchmod(self.file.fileno(), stat.S_IEXEC | stat.S_IREAD | stat.S_IWRITE)
-
-	def name(self):
-		return self.file.name
+	return args
 
 def process_script(script_filename):
 	import os
@@ -82,6 +85,44 @@ def upload_package():
 		k.set_contents_from_file(tf, cb=report_progress)
 		print ' done'
 
+class ScopedTemporaryFile:
+	def __init__(self, executable=False):
+		import tempfile
+		self.file = tempfile.NamedTemporaryFile(delete=False)
+		self.name = self.file.name
+		if executable:
+			self.mkexec()
+
+	def __del__(self):
+		import os
+		if not self.file.closed:
+			self.close()
+		os.remove(self.name)
+
+	def close(self):
+		self.file.flush()
+		self.file.close()
+
+	def mkexec(self):
+		import os, stat
+		os.fchmod(self.file.fileno(), stat.S_IEXEC | stat.S_IREAD | stat.S_IWRITE)
+
+	def name(self):
+		return self.file.name
+
+def launch_local(user_data):
+	import tempfile, os, stat, sys
+	tf = ScopedTemporaryFile(executable=True)
+	tf.file.writelines(user_data)
+	tf.close()
+	import subprocess, sys
+	sys.stdout.flush()
+	new_args = [tf.name, '--local']
+	if args.debug:
+		new_args += ['--debug']
+	proc = subprocess.Popen(new_args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
+	exit(proc.wait())
+
 def launch_remote(user_data):
 	import boto, StringIO, gzip, contextlib
 	global args
@@ -117,47 +158,6 @@ def launch_remote(user_data):
 								)
 	return reservation
 
-def launch_local(user_data):
-	import tempfile, os, stat, sys
-	tf = ScopedTemporaryFile(executable=True)
-	tf.file.writelines(user_data)
-	tf.close()
-	import subprocess, sys
-	sys.stdout.flush()
-	new_args = [tf.name, '--local']
-	if args.debug:
-		new_args += ['--debug']
-	proc = subprocess.Popen(new_args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
-	exit(proc.wait())
-
-def parse_args():
-	import argparse
-
-	parser = argparse.ArgumentParser(description='cloudlaunch.py: launch scripts in the cloud')
-	parser.add_argument('-l', '--local', default=False, action='store_true', help='run locally')
-	parser.add_argument('-u', '--upload-only', default=False, action='store_true', help='only upload the package, do not start instances')
-	parser.add_argument('-f', '--script-file', type=str, default='./userdatascript.py', help='script file to process and launch (default=./user-data-script.py)')
-	parser.add_argument('-m', '--ami', type=str, default='ami-e2af508b', help='AMI to start (default=\'ami-e2af508b\', Ubuntu 11.04 Natty Server 32-bit us-east-1)')
-	parser.add_argument('-n', '--count', type=int, default=1, help='number of instances to start (default=1)')
-	parser.add_argument('-t', '--instance-type', type=str, default='m1.small', help='instance type (default=m1.small)')
-	parser.add_argument('-k', '--key-pair', type=str, default='cdk11744-nix', help='key pair name (default=cdk11744-nix)')
-	parser.add_argument('-g', '--security-group', type=str, action='append', help='enable security group for instances (default=\'default\')')
-	parser.add_argument('-s', '--spot-instances', default=False, action='store_true', help='run with spot instances (default is on-demand instances)')
-	parser.add_argument('-p', '--persistent', default=False, action='store_true', help='make request persistent (valid only for spot instance requests)')
-	parser.add_argument('-r', '--price', type=float, default=0.04, help='price (valid only for spot instance requests, default=0.04)')
-	parser.add_argument('-d', '--package-directory', type=str, help='startup directory to package and send to nodes (default=<script_dir>/remote)')
-	parser.add_argument('-b', '--debug', default=False, action='store_true', help='run in debug mode')
-	args = parser.parse_args()
-
-	# complex defaults
-	if not args.security_group:
-		args.security_group = ['default']
-	if not args.package_directory:
-		import os
-		args.package_directory = os.path.dirname(__file__) + os.sep + 'remote/'
-
-	return args
-
 def main():
 	global args
 	args = parse_args()
@@ -165,7 +165,7 @@ def main():
 	if not args.upload_only:
 		script = process_script(args.script_file)
 		if args.local:
-			launch_local(script)
+			launch_local(user_data=script)
 		else:
 			resv = launch_remote(user_data=script)
 			print resv

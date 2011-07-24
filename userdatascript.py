@@ -13,55 +13,7 @@ logfilename = 'user-data-script.log'
 
 import logging
 
-def get_s3_bucket():
-	import boto
-	global args
-	if args.local:
-		s3conn = boto.connect_s3()
-	else:
-		s3conn = boto.connect_s3(CREDENTIALS.access_key, CREDENTIALS.secret_key)
-	b = s3conn.get_bucket(CREDENTIALS.bucket)
-	if not b:
-		logging.critical('Bucket %s does not exist' % CREDENTIALS.bucket)
-		exit(1)
-	return b
-
-def run_package():
-	import tarfile, tempfile, shutil, os
-	global args
-
-	bucket = get_s3_bucket()
-	key = bucket.get_key(CREDENTIALS.package)
-	if not key:
-		logging.critical('Key %s in bucket %s does not exist' % (CREDENTIALS.package, CREDENTIALS.bucket))
-		exit(1)
-
-	with tempfile.SpooledTemporaryFile(max_size=10240, mode='w+b') as tf:
-		td = tempfile.mkdtemp()
-		logging.info('Downloading %s from bucket %s' % (CREDENTIALS.package, CREDENTIALS.bucket))
-		key.get_contents_to_file(tf)
-		tf.seek(0)
-		tar = tarfile.open(fileobj=tf)
-		tar.extractall(path=td)	
-		import subprocess, sys
-		command = [td + os.sep + CREDENTIALS.script]
-		command += ['--log=%s' % logfilename]
-		command += ['--access-key=%s' % CREDENTIALS.access_key]
-		command += ['--secret-key=%s' % CREDENTIALS.secret_key]
-		if args.local:
-			command += ['--local']
-		logging.shutdown()
-		sys.stdout.flush()
-		proc = subprocess.Popen(command, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
-		errno = proc.wait()
-		if args.debug:
-			import shutil
-			print "Press any key to clean-up",
-			raw_input()
-			shutil.rmtree(td)
-	exit(errno)
-
-internal_packages = ('python-boto',)
+internal_packages = ['python-boto']
 
 def parse_args():
 	import argparse
@@ -95,32 +47,6 @@ def restart(with_sudo=False, add_args=[], remove_args=[]):
 	os.execvp(command, new_args)
 	# exit(0)
 
-def upgrade_and_install():
-	global args
-	if args.skip_update or args.local:
-		logging.info('Skipping upgrade/install')
-		return
-	else:
-		import apt
-		cache = apt.Cache()
-		try:
-			cache.update()
-			cache.open(None)
-			cache.upgrade()
-			install_packages = set(internal_packages) | set(packages)
-			for pkg in install_packages:
-				cache[pkg].mark_install()
-			logging.info('Upgrading and installing...')
-			cache.commit()
-		except apt.cache.LockFailedException:
-			if not args.vmesh_trying_for_sudo:
-				logging.info("Need super-user rights to upgrade and install, restarting with sudo...")
-				restart(with_sudo=True, add_args=['--vmesh-trying-for-sudo'])
-			else:
-				raise
-		logging.info("Upgrade/install complete, restarting without sudo...")
-		restart(with_sudo=False, add_args=['--skip-update'], remove_args=['--vmesh-trying-for-sudo'])
-
 def setup_logging():
 	import sys, time
 	global args
@@ -142,6 +68,80 @@ def setup_logging():
 	logging.getLogger('boto').setLevel(logging.CRITICAL)
 	logging.info('### Vmesh user-data script starting (python %d.%d.%d, timestamp %d) ###' % (sys.version_info[:3] + (time.time(),)))
 	logging.debug('sys.argv: %s', str(sys.argv))
+
+def upgrade_and_install():
+	global args
+	if args.skip_update or args.local:
+		logging.info('Skipping upgrade/install')
+		return
+	else:
+		import apt
+		cache = apt.Cache()
+		try:
+			cache.update()
+			cache.open(None)
+			cache.upgrade()
+			install_packages = set(internal_packages + packages)
+			for pkg in install_packages:
+				cache[pkg].mark_install()
+			logging.info('Upgrading and installing...')
+			cache.commit()
+		except apt.cache.LockFailedException:
+			if not args.vmesh_trying_for_sudo:
+				logging.info("Need super-user rights to upgrade and install, restarting with sudo...")
+				restart(with_sudo=True, add_args=['--vmesh-trying-for-sudo'])
+			else:
+				raise
+		logging.info("Upgrade/install complete, restarting without sudo...")
+		restart(with_sudo=False, add_args=['--skip-update'], remove_args=['--vmesh-trying-for-sudo'])
+
+def get_s3_bucket():
+	import boto
+	global args
+	if args.local:
+		s3conn = boto.connect_s3()
+	else:
+		s3conn = boto.connect_s3(CREDENTIALS.access_key, CREDENTIALS.secret_key)
+	b = s3conn.get_bucket(CREDENTIALS.bucket)
+	if not b:
+		logging.critical('Bucket %s does not exist' % CREDENTIALS.bucket)
+		exit(1)
+	return b
+
+def run_package():
+	import tarfile, tempfile, shutil, os
+	global args
+
+	bucket = get_s3_bucket()
+	key = bucket.get_key(CREDENTIALS.package)
+	if not key:
+		logging.critical('Key %s in bucket %s does not exist' % (CREDENTIALS.package, CREDENTIALS.bucket))
+		exit(1)
+
+	with tempfile.SpooledTemporaryFile(max_size=10240, mode='w+b') as tf:
+		td = tempfile.mkdtemp()
+		logging.info('Downloading %s from bucket %s' % (CREDENTIALS.package, CREDENTIALS.bucket))
+		key.get_contents_to_file(tf)
+		tf.seek(0)
+		tar = tarfile.open(fileobj=tf)
+		tar.extractall(path=td)
+		import subprocess, sys
+		command = [td + os.sep + CREDENTIALS.script]
+		command += ['--log=%s' % logfilename]
+		command += ['--access-key=%s' % CREDENTIALS.access_key]
+		command += ['--secret-key=%s' % CREDENTIALS.secret_key]
+		if args.local:
+			command += ['--local']
+		logging.shutdown()
+		sys.stdout.flush()
+		proc = subprocess.Popen(command, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
+		errno = proc.wait()
+		if args.debug:
+			import shutil
+			print "Press any key to clean-up",
+			raw_input()
+			shutil.rmtree(td)
+	exit(errno)
 
 if __name__ == '__main__':
 	global args
