@@ -141,10 +141,8 @@ def run_package():
 		if args.local:
 			command += ' --local'
 
-		# flush logs and do the spawn
-		import subprocess, sys
+		import subprocess
 		logging.info('Running command: %s' % command)
-		sys.stdout.flush()
 		proc = subprocess.Popen(command, shell=True, stdout=sys.stdout, stderr=sys.stderr) # returns immediately
 		errno = proc.wait()
 
