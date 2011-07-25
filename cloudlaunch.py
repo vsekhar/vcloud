@@ -140,7 +140,7 @@ def launch_remote(user_data):
 
 	ec2conn = boto.connect_ec2()
 	if args.spot_instances:
-		reservation = ec2conn.request_spot_instances(
+		requests = ec2conn.request_spot_instances(
 								price=str(args.price),
 								image_id=args.ami,
 								count=args.count,
@@ -150,6 +150,7 @@ def launch_remote(user_data):
 								security_groups=args.security_group,
 								user_data=zipped_user_data
 								)
+		return requests
 	else:
 		reservation = ec2conn.run_instances(
 								image_id=args.ami,
@@ -160,7 +161,7 @@ def launch_remote(user_data):
 								instance_type=args.instance_type,
 								user_data=zipped_user_data
 								)
-	return reservation
+		return reservation
 
 def main():
 	global args
