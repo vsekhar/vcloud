@@ -154,9 +154,8 @@ def run_package():
 
 		# clean up
 		if args.local:
-			if args.debug:
-				print "Press any key to clean-up",
-				raw_input()
+			print "Press any key to clean-up",
+			raw_input()
 			import shutil
 			shutil.rmtree(td)
 
