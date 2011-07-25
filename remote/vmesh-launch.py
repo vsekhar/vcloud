@@ -13,6 +13,11 @@ def random_string(length = 8):
 	return ''.join([random.choice(string.letters + string.digits) for _ in range(length)])
 
 if __name__ == '__main__':
+	if args.list:
+		for host in peers.hosts:
+			print host.name, host['timestamp']
+		exit(0)
+
 	if args.reset:
 		peers.clear_hosts()
 
