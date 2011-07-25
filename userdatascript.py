@@ -143,8 +143,8 @@ def run_package():
 
 		import subprocess
 		logging.info('Running command: %s' % command)
-		proc = subprocess.Popen(command, shell=True, stdout=sys.stdout, stderr=sys.stderr) # returns immediately
-		errno = proc.wait()
+		proc = subprocess.Popen(command, shell=True, stdout=sys.stdout, stderr=sys.stderr)
+		errno = proc.wait() # shouldn't wait long since screen -d -m returns immediately
 
 		# clean up
 		if args.local:
