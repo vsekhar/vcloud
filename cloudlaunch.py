@@ -78,9 +78,9 @@ def upload_package():
 		k = b.get_key(CREDENTIALS.package)
 		if not k:
 			k = b.new_key(CREDENTIALS.package)
-		print 'Uploading package %s' % CREDENTIALS.package
+		print 'Uploading package %s:' % CREDENTIALS.package
 		def report_progress(at, total):
-			print '\r%f%%' % (at/total),
+			print '\r%d%%' % ((at/total)*100),
 			sys.stdout.flush()
 		k.set_contents_from_file(tf, cb=report_progress)
 		print ' done'
