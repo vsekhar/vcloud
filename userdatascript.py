@@ -144,13 +144,9 @@ def run_package():
 		# flush logs and do the spawn
 		import subprocess, sys
 		logging.info('Running command: %s' % command)
-		logging.shutdown()
 		sys.stdout.flush()
-		try:
-			proc = subprocess.Popen(command, shell=True, stdout=sys.stdout, stderr=sys.stderr)
-			errno = proc.wait()
-		except KeyboardInterrupt:
-			errno = 1
+		proc = subprocess.Popen(command, shell=True, stdout=sys.stdout, stderr=sys.stderr) # returns immediately
+		errno = proc.wait()
 
 		# clean up
 		if args.local:
