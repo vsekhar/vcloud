@@ -13,7 +13,7 @@ logfilename = 'user-data-script.log'
 
 import logging
 
-internal_packages = ['python-boto']
+internal_packages = ['python-boto', 'screen']
 
 def parse_args():
 	import argparse
@@ -109,7 +109,7 @@ def get_s3_bucket():
 	return b
 
 def run_package():
-	import tarfile, tempfile, shutil, os
+	import tarfile, tempfile, shutil, os, pwd
 	global args
 
 	bucket = get_s3_bucket()
@@ -118,33 +118,48 @@ def run_package():
 		logging.critical('Key %s in bucket %s does not exist' % (CREDENTIALS.package, CREDENTIALS.bucket))
 		exit(1)
 
-	with tempfile.SpooledTemporaryFile(max_size=10240, mode='w+b') as tf:
-		td = tempfile.mkdtemp()
+	# get home directory
+	if args.local:
+		user = pwd.getpwuid(os.getuid())
+	else:
+		user = pwd.getpwnam(CREDENTIALS.user.strip())
+	username = user.pw_name
+	homedir = user.pw_dir
+
+	with tempfile.SpooledTemporaryFile(max_size=10240, mode='w+b', dir=homedir) as tf:
+		td = tempfile.mkdtemp(dir=homedir)
 		logging.info('Downloading %s from bucket %s' % (CREDENTIALS.package, CREDENTIALS.bucket))
 		key.get_contents_to_file(tf)
 		tf.seek(0)
 		tar = tarfile.open(fileobj=tf)
 		tar.extractall(path=td)
-		import subprocess, sys
-		command = [td + os.sep + CREDENTIALS.script]
-		command += ['--log=%s' % logfilename]
-		command += ['--access-key=%s' % CREDENTIALS.access_key]
-		command += ['--secret-key=%s' % CREDENTIALS.secret_key]
+
+		# build command to drop permissions, run inside a screen, and provide access credentials
+		command = 'start-stop-daemon --start -c ' + username + ' -d ' + homedir + ' --exec /usr/bin/screen -- -d -m'
+		command += ' ' + td + os.sep + CREDENTIALS.script
+		command += ' --access-key=' + CREDENTIALS.access_key + ' --secret-key=' + CREDENTIALS.secret_key
 		if args.local:
-			command += ['--local']
+			command += ' --local'
+
+		# flush logs and do the spawn
+		import subprocess, sys
+		logging.info('Running command: %s' % command)
 		logging.shutdown()
 		sys.stdout.flush()
 		try:
-			proc = subprocess.Popen(command, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
+			proc = subprocess.Popen(command, shell=True, stdout=sys.stdout, stderr=sys.stderr)
 			errno = proc.wait()
 		except KeyboardInterrupt:
 			errno = 1
+
+		# clean up
 		if args.local:
 			if args.debug:
 				print "Press any key to clean-up",
 				raw_input()
 			import shutil
 			shutil.rmtree(td)
+
 	exit(errno)
 
 if __name__ == '__main__':
