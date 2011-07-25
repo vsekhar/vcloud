@@ -167,13 +167,16 @@ def main():
 	global args
 	args = parse_args()
 	upload_package()
-	if not args.upload_only:
-		script = process_script(args.script_file)
-		if args.local:
-			launch_local(user_data=script)
-		else:
-			resv = launch_remote(user_data=script)
-			print resv
+	if args.upload_only:
+		import sys
+		sys.exit(0)
+
+	script = process_script(args.script_file)
+	if args.local:
+		launch_local(user_data=script)
+	else:
+		resv = launch_remote(user_data=script)
+		print resv
 
 if __name__ == '__main__':
 	main()
