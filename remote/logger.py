@@ -10,7 +10,7 @@ for name in pull_names:
 	setattr(sys.modules[__name__], name, getattr(_logging, name))
 
 # setup logging
-if args.local:
+if args.interactive:
 	logfile = sys.stdout
 else:
 	logfile = open(args.log, 'a')

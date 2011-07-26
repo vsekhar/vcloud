@@ -12,14 +12,18 @@ safeargv = map(hider, sys.argv)
 
 # parse command line
 parser = argparse.ArgumentParser(description='vmesh-launch.py: initial package script')
-parser.add_argument('-l', '--local', default=False, action='store_true', help='run in local/debug mode (log to screen, no AWS metadata)')
-parser.add_argument('--list', default=False, action='store_true', help='list hosts and exit (do not register this host)')
 parser.add_argument('-c', '--reset', default=False, action='store_true', help='reset metadata at startup')
+parser.add_argument('-l', '--local', default=False, action='store_true', help='run in local/debug mode (log to screen, no AWS metadata)')
 parser.add_argument('--log', type=str, default='vmesh-launch.log', help='log file')
+parser.add_argument('-i', '--interactive', default=False, action='store_true', help='interactive (no log to file)')
+parser.add_argument('--list', default=False, action='store_true', help='list hosts and exit (do not register this host)')
 parser.add_argument('--config-file', type=str, help='config file')
 parser.add_argument('--access-key', type=str, help='access key')
 parser.add_argument('--secret-key', type=str, help='secret key')
 parsed_args = parser.parse_args()
+
+if parsed_args.local:
+	parsed_args.interactive = True
 
 # parse config file
 config_parser = argparse.ArgumentParser(description='vmesh-launch config file parser')

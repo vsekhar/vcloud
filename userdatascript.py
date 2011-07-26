@@ -13,18 +13,24 @@ logfilename = 'user-data-script.log'
 
 import logging
 
-internal_packages = ['python-boto', 'screen']
+internal_packages = ['python-boto', 'screen', 'htop']
 
 def parse_args():
 	import argparse
 
 	parser = argparse.ArgumentParser(description='user-data-script.py: initial python instance startup script')
-	parser.add_argument('--local', default=False, action='store_true', help='run in local mode (log to screen, no AWS metadata)')
-	parser.add_argument('--debug', default=False, action='store_true', help='run in debug mode (additional reporting, pauses before cleanup, etc.)')
+	parser.add_argument('-R', '--reset', default=False, action='store_true', help='reset local environment before running')
+	parser.add_argument('-i', '--interactive', default=False, action='store_true', help='interactive (no logfile)')
+	parser.add_argument('-l', '--local', default=False, action='store_true', help='run in local mode (use fake AWS metadata, skip apt package updates and cleanup temporaries afterwards, implies --interactive)')
+	parser.add_argument('-b', '--debug', default=False, action='store_true', help='run in debug mode (additional reporting, pauses before cleanup, etc.)')
 	parser.add_argument('--skip-update', default=False, action='store_true', help='skip apt package updates')
 	parser.add_argument('--vmesh-trying-for-sudo', default=False, action='store_true', help='INTERNAL: flag used in permissions escalation')
 
-	return parser.parse_args()
+	args = parser.parse_args()
+	if args.local:
+		args.interactive = True
+
+	return args
 
 def restart(with_sudo=False, add_args=[], remove_args=[]):
 	import os, sys
@@ -51,11 +57,12 @@ def setup_logging():
 	import time, sys
 	global args
 	# setup logging
-	if args.local:
+	if args.interactive:
 		logfile = sys.stdout
 	else:
 		logfile = open(logfilename, 'a')
 		global old_stdout, old_stderr
+		print "STDOUT and STDERR switched to log file: %s" % logfile.name
 		old_stdout = sys.stdout
 		old_stderr = sys.stderr
 		sys.stdout = logfile
@@ -78,6 +85,7 @@ def upgrade_and_install():
 		import apt
 		cache = apt.Cache()
 		try:
+			logging.info('Updating package info...')
 			cache.update()
 			cache.open(None)
 			cache.upgrade()
@@ -144,6 +152,15 @@ class TempDir:
 		shutil.rmtree(self.tdir)
 		self.tdir = None
 
+def user_info():
+	import pwd, os
+	global args
+	if args.local:
+		user = pwd.getpwuid(os.getuid())
+	else:
+		user = pwd.getpwnam(CREDENTIALS.user.strip())
+	return user.pw_name, user.pw_dir
+
 def run_package():
 	global args
 
@@ -153,16 +170,9 @@ def run_package():
 		logging.critical('Key %s in bucket %s does not exist' % (CREDENTIALS.package, CREDENTIALS.bucket))
 		exit(1)
 
-	# get home directory
-	import pwd, os
-	if args.local:
-		user = pwd.getpwuid(os.getuid())
-	else:
-		user = pwd.getpwnam(CREDENTIALS.user.strip())
-	username = user.pw_name
-	homedir = user.pw_dir
+	username, homedir = user_info()
 
-	import subprocess, tempfile, tarfile, sys
+	import subprocess, tempfile, tarfile, sys, os
 	with tempfile.SpooledTemporaryFile(max_size=10240, mode='w+b', dir=homedir) as tf:
 		with TempDir(dir=homedir, delete=args.local, prompt=True) as td:
 			logging.info('Downloading %s from bucket %s' % (CREDENTIALS.package, CREDENTIALS.bucket))
@@ -176,6 +186,8 @@ def run_package():
 			script_args = '--access-key=%s --secret-key=%s' % (CREDENTIALS.access_key, CREDENTIALS.secret_key)
 			if args.local:
 				script_args += ' --local'
+			if args.interactive:
+				script_args += ' --interactive'
 			command = 'sudo -u %s screen -dmS vmesh bash -ilc \"%s %s\"'
 			command %= (username, script_path, script_args)
 
@@ -183,8 +195,14 @@ def run_package():
 			command_seq = shlex.split(command)
 
 			logging.info('Running package script with command: %s' % command)
-			errno = subprocess.check_call(args=command_seq, stdout=sys.stdout, stderr=sys.stderr)
+			errno = subprocess.check_call(args=command_seq)
 			return errno
+
+def reset_local_environment():
+	import os
+	username, homedir = user_info()
+	os.system('rm -rf %s' % homedir + os.sep + 'tmp*')
+	os.system('rm -f %s' % os.sep + logfilename)
 
 if __name__ == '__main__':
 	import sys
@@ -192,7 +210,10 @@ if __name__ == '__main__':
 	args = parse_args()
 	
 	setup_logging()
+	if args.reset:
+		reset_local_environment()
 	upgrade_and_install()
 	errno = run_package()
+	logging.shutdown()
 	sys.exit(errno)
 
