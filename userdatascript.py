@@ -48,7 +48,7 @@ def restart(with_sudo=False, add_args=[], remove_args=[]):
 	# exit(0)
 
 def setup_logging():
-	import sys, time
+	import time, sys
 	global args
 	# setup logging
 	if args.local:
@@ -108,8 +108,43 @@ def get_s3_bucket():
 		exit(1)
 	return b
 
+class TempDir:
+	def __init__(self, dir=None, delete=True, prompt=False):
+		self.dir = dir
+		self.delete = delete
+		self.prompt = prompt
+		self.exists = False
+		self.tdir = None
+
+	def __del__(self):
+		self.checked_remove()
+
+	def __enter__(self):
+		return self.create()
+
+	def __exit__(self, exc_type, exc, tb):
+		self.checked_remove()
+
+	def create(self):
+		import tempfile
+		if self.tdir is not None:
+			self.remove()
+		self.tdir = tempfile.mkdtemp(dir=self.dir)
+		return self.tdir
+	
+	def checked_remove(self):
+		if self.tdir is not None and self.delete:
+			if self.prompt:
+				print 'TempDir (%s): Press any key to clean up' % self.tdir
+				raw_input()
+			self.remove()
+
+	def remove(self):
+		import shutil
+		shutil.rmtree(self.tdir)
+		self.tdir = None
+
 def run_package():
-	import tarfile, tempfile, shutil, os, pwd
 	global args
 
 	bucket = get_s3_bucket()
@@ -119,6 +154,7 @@ def run_package():
 		exit(1)
 
 	# get home directory
+	import pwd, os
 	if args.local:
 		user = pwd.getpwuid(os.getuid())
 	else:
@@ -126,41 +162,37 @@ def run_package():
 	username = user.pw_name
 	homedir = user.pw_dir
 
+	import subprocess, tempfile, tarfile, sys
 	with tempfile.SpooledTemporaryFile(max_size=10240, mode='w+b', dir=homedir) as tf:
-		td = tempfile.mkdtemp(dir=homedir)
-		logging.info('Downloading %s from bucket %s' % (CREDENTIALS.package, CREDENTIALS.bucket))
-		key.get_contents_to_file(tf)
-		tf.seek(0)
-		tar = tarfile.open(fileobj=tf)
-		tar.extractall(path=td)
+		with TempDir(dir=homedir, delete=args.local, prompt=True) as td:
+			logging.info('Downloading %s from bucket %s' % (CREDENTIALS.package, CREDENTIALS.bucket))
+			key.get_contents_to_file(tf)
+			tf.seek(0)
+			tar = tarfile.open(fileobj=tf)
+			tar.extractall(path=td)
 
-		# build command to drop permissions, run inside a screen, and provide access credentials
-		command = 'start-stop-daemon --start -c ' + username + ' -d ' + homedir + ' --exec /usr/bin/screen -- -d -m'
-		command += ' ' + td + os.sep + CREDENTIALS.script
-		command += ' --access-key=' + CREDENTIALS.access_key + ' --secret-key=' + CREDENTIALS.secret_key
-		if args.local:
-			command += ' --local'
+			# build command to drop permissions, run inside a screen, and provide access credentials
+			script_path = td + os.sep + CREDENTIALS.script
+			script_args = '--access-key=%s --secret-key=%s' % (CREDENTIALS.access_key, CREDENTIALS.secret_key)
+			if args.local:
+				script_args += ' --local'
+			command = 'sudo -u %s screen -dmS vmesh bash -ilc \"%s %s\"'
+			command %= (username, script_path, script_args)
 
-		import subprocess
-		logging.info('Running command: %s' % command)
-		proc = subprocess.Popen(command, shell=True, stdout=sys.stdout, stderr=sys.stderr)
-		errno = proc.wait() # shouldn't wait long since screen -d -m returns immediately
+			import shlex
+			command_seq = shlex.split(command)
 
-		# clean up
-		if args.local:
-			print "Press any key to clean-up",
-			raw_input()
-			import shutil
-			shutil.rmtree(td)
-
-	exit(errno)
+			logging.info('Running package script with command: %s' % command)
+			errno = subprocess.check_call(args=command_seq, stdout=sys.stdout, stderr=sys.stderr)
+			return errno
 
 if __name__ == '__main__':
+	import sys
 	global args
 	args = parse_args()
 	
 	setup_logging()
 	upgrade_and_install()
-	# de-escalate privilages?
-	run_package()
+	errno = run_package()
+	sys.exit(errno)
 
