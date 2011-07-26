@@ -23,6 +23,7 @@ def parse_args():
 	parser.add_argument('-l', '--local', default=False, action='store_true', help='run locally')
 	parser.add_argument('-u', '--upload-only', default=False, action='store_true', help='only upload the package, do not start instances')
 	parser.add_argument('-f', '--script-file', type=str, default='./userdatascript.py', help='script file to process and launch (default=./user-data-script.py)')
+	parser.add_argument('--script', default=False, action='store_true', help='process and output script, then exit')
 	parser.add_argument('-m', '--ami', type=str, default='ami-e2af508b', help='AMI to start (default=\'ami-e2af508b\', Ubuntu 11.04 Natty Server 32-bit us-east-1)')
 	parser.add_argument('-n', '--count', type=int, default=1, help='number of instances to start (default=1)')
 	parser.add_argument('-t', '--instance-type', type=str, default='m1.small', help='instance type (default=m1.small)')
@@ -164,15 +165,20 @@ def launch_remote(user_data):
 		return reservation
 
 def main():
+	import sys
 	global args
 	args = parse_args()
-	upload_package()
-	if args.upload_only:
-		import sys
-		sys.exit(0)
 
 	script = process_script(args.script_file)
-	if args.local:
+	if args.script:
+		print script
+		sys.exit(0)
+
+	upload_package()
+	if args.upload_only:
+		sys.exit(0)
+
+	elif args.local:
 		launch_local(user_data=script)
 	else:
 		resv = launch_remote(user_data=script)
