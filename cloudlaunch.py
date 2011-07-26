@@ -79,6 +79,7 @@ def upload_package():
 		k = b.get_key(CREDENTIALS.package)
 		if not k:
 			k = b.new_key(CREDENTIALS.package)
+
 		print 'Uploading package %s:' % CREDENTIALS.package
 		def report_progress(at, total):
 			print '\r%d%%' % ((at/total)*100),
@@ -129,14 +130,14 @@ def launch_local(user_data):
 	exit(errno)
 
 def launch_remote(user_data):
-	import boto, StringIO, gzip, contextlib
+	import boto, StringIO, gzip
+	from contextlib import closing
 	global args
 
 	# prepare gzipped user-data
-	with contextlib.closing(StringIO.StringIO()) as sio:
-		zipper = gzip.GzipFile(fileobj=sio, mode='wb')
-		zipper.write(user_data)
-		zipper.close()
+	with closing(StringIO.StringIO()) as sio:
+		with closing(gzip.GzipFile(fileobj=sio, mode='wb')) as zipper:
+			zipper.write(user_data)
 		zipped_user_data = sio.getvalue()
 
 	ec2conn = boto.connect_ec2()

@@ -202,7 +202,7 @@ def reset_local_environment():
 	import os
 	username, homedir = user_info()
 	os.system('rm -rf %s' % homedir + os.sep + 'tmp*')
-	os.system('rm -f %s' % os.sep + logfilename)
+	os.system('rm -f %s' % logfilename)
 
 if __name__ == '__main__':
 	import sys
