@@ -31,6 +31,8 @@ if __name__ == '__main__':
 	# initialization
 	peers.update_node()
 	peers.purge_old_peers()
+	if args.debug:
+		log.info('Debug logging mode enabled')
 
 	# main run loop
 	try:
