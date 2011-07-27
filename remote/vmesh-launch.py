@@ -9,6 +9,8 @@ import random
 import args # processes args
 import peers # starts server socket
 
+from logger import log
+
 def random_string(length = 8):
 	return ''.join([random.choice(string.letters + string.digits) for _ in range(length)])
 
@@ -28,6 +30,7 @@ if __name__ == '__main__':
 
 	# initialization
 	peers.update_node()
+	peers.purge_old_peers()
 
 	# main run loop
 	try:
@@ -38,20 +41,27 @@ if __name__ == '__main__':
 
 			# kernel processing
 			if cur_time - kernel_time > args.kernel_interval:
-				if peers.connections:
-					kernel_time = cur_time
+				try:
+					connection = random.choice(peers.connections.values())
+				except IndexError:
+					pass
+				else:
 					msg = random_string()
-					random.choice(peers.connections.values()).send_msg('kernel', msg)
+					connection.send_msg('kernel', msg)
+				finally:
+					kernel_time = cur_time
 
 			# peer processing
 			if cur_time - peer_mgmt_time > args.peer_mgmt_interval:
 				peer_mgmt_time = cur_time
 				peers.top_up()
 				peers.update_node()
-				print 'connections: ',
-				for c in peers.connections.values():
-					print c.peer_id,
-				print " unknowns: %d" % len(peers.unknown_connections)
+				if args.debug:
+					s = 'connections: '
+					for c in peers.connections.values():
+						s += c.peer_id + ' '
+					s += 'unknowns: %d' % len(peers.unknown_connections)
+					log.debug(s)
 
 			# clean-up
 			if cur_time - clean_up_time > args.clean_up_interval:

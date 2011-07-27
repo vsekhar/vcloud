@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 packages = []
-logfilename = 'user-data-script.log'
+logfilename = 'vmesh.log'
 
 ################################################
 # End user modifiables
@@ -53,66 +53,92 @@ def restart(with_sudo=False, add_args=[], remove_args=[]):
 	os.execvp(command, new_args)
 	# exit(0)
 
-def setup_logging():
-	import time, sys
+def user_info():
+	import pwd, os
 	global args
-	# setup logging
-	if args.interactive:
-		logfile = sys.stdout
+	if args.local:
+		return pwd.getpwuid(os.getuid())
 	else:
-		logfile = open(logfilename, 'a')
+		return pwd.getpwnam(CREDENTIALS.user.strip())
+
+def setup_logging():
+	import time, sys, os
+	global args, log
+
+	log = logging.getLogger('user-data-script')
+	log.setLevel(logging.DEBUG if args.debug else logging.INFO)
+	formatter = logging.Formatter(fmt='%(asctime)s %(name)s %(levelname)s: %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
+	
+	# setup logging to file
+	userinfo = user_info()
+	if args.local:
+		logfilepath = logfilename # use current directory
+	else:
+		logfilepath = userinfo.pw_dir + os.sep + logfilename # user's home dir
+	logfile = open(logfilepath, 'a')
+	os.fchown(logfile.fileno(), userinfo.pw_uid, userinfo.pw_gid)
+	fh = logging.StreamHandler(stream=logfile) # don't use FileHandler since we have to chown an open file
+	fh.setFormatter(formatter)
+	log.addHandler(fh)
+
+	if args.interactive:
+		# setup logging to console
+		sh = logging.StreamHandler()
+		sh.setFormatter(formatter)
+		log.addHandler(sh)
+	else:
+		# no one is watching, so capture python exception errors and the like
 		global old_stdout, old_stderr
-		print "STDOUT and STDERR switched to log file: %s" % logfile.name
+		log.info('STDOUT and STDERR redirected to log file: %s' % logfile.name)
 		old_stdout = sys.stdout
 		old_stderr = sys.stderr
 		sys.stdout = logfile
 		sys.stderr = logfile
 
-	logging.basicConfig(stream=logfile, level=logging.DEBUG,
-						format='%(asctime)s: %(message)s',
-						datefmt='%m/%d/%Y %I:%M:%S %p')
+	# boto is normally a bit too noisy
+	logging.getLogger('boto').setLevel(logging.WARNING)
 
-	logging.getLogger('boto').setLevel(logging.CRITICAL)
-	logging.info('### Vmesh user-data script starting (python %d.%d.%d, timestamp %d) ###' % (sys.version_info[:3] + (time.time(),)))
-	logging.debug('sys.argv: %s', str(sys.argv))
+	# announce startup
+	log.info('### Vmesh user-data script starting (python %d.%d.%d, timestamp %d) ###' % (sys.version_info[:3] + (time.time(),)))
+	log.debug('sys.argv: %s', str(sys.argv))
 
 def upgrade_and_install():
-	global args
+	global args, log
 	if args.skip_update or args.local:
-		logging.info('Skipping upgrade/install')
+		log.info('Skipping upgrade/install')
 		return
 	else:
 		import apt
 		cache = apt.Cache()
 		try:
-			logging.info('Updating package info...')
+			log.info('Updating package info...')
 			cache.update()
 			cache.open(None)
 			cache.upgrade()
 			install_packages = set(internal_packages + packages)
 			for pkg in install_packages:
 				cache[pkg].mark_install()
-			logging.info('Upgrading and installing...')
+			log.info('Upgrading and installing...')
 			cache.commit()
 		except apt.cache.LockFailedException:
 			if not args.vmesh_trying_for_sudo:
-				logging.info("Need super-user rights to upgrade and install, restarting with sudo...")
+				log.info("Need super-user rights to upgrade and install, restarting with sudo...")
 				restart(with_sudo=True, add_args=['--vmesh-trying-for-sudo'])
 			else:
 				raise
-		logging.info("Upgrade/install complete, restarting without sudo...")
+		log.info("Upgrade/install complete, restarting without sudo...")
 		restart(with_sudo=False, add_args=['--skip-update'], remove_args=['--vmesh-trying-for-sudo'])
 
 def get_s3_bucket():
 	import boto
-	global args
+	global args, log
 	if args.local:
 		s3conn = boto.connect_s3()
 	else:
 		s3conn = boto.connect_s3(CREDENTIALS.access_key, CREDENTIALS.secret_key)
 	b = s3conn.get_bucket(CREDENTIALS.bucket)
 	if not b:
-		logging.critical('Bucket %s does not exist' % CREDENTIALS.bucket)
+		log.critical('Bucket %s does not exist' % CREDENTIALS.bucket)
 		exit(1)
 	return b
 
@@ -152,30 +178,23 @@ class TempDir:
 		shutil.rmtree(self.tdir)
 		self.tdir = None
 
-def user_info():
-	import pwd, os
-	global args
-	if args.local:
-		user = pwd.getpwuid(os.getuid())
-	else:
-		user = pwd.getpwnam(CREDENTIALS.user.strip())
-	return user.pw_name, user.pw_dir
-
 def run_package():
-	global args
+	global args, log
 
 	bucket = get_s3_bucket()
 	key = bucket.get_key(CREDENTIALS.package)
 	if not key:
-		logging.critical('Key %s in bucket %s does not exist' % (CREDENTIALS.package, CREDENTIALS.bucket))
+		log.critical('Key %s in bucket %s does not exist' % (CREDENTIALS.package, CREDENTIALS.bucket))
 		exit(1)
 
-	username, homedir = user_info()
+	userinfo = user_info()
+	username = userinfo.pw_name
+	homedir = userinfo.pw_dir
 
 	import subprocess, tempfile, tarfile, sys, os
 	with tempfile.SpooledTemporaryFile(max_size=10240, mode='w+b', dir=homedir) as tf:
 		with TempDir(dir=homedir, delete=args.local, prompt=True) as td:
-			logging.info('Downloading %s from bucket %s' % (CREDENTIALS.package, CREDENTIALS.bucket))
+			log.info('Downloading %s from bucket %s' % (CREDENTIALS.package, CREDENTIALS.bucket))
 			key.get_contents_to_file(tf)
 			tf.seek(0)
 			tar = tarfile.open(fileobj=tf)
@@ -188,15 +207,19 @@ def run_package():
 				script_args += ' --local'
 			if args.interactive:
 				script_args += ' --interactive'
+			if args.debug:
+				script_args += ' --debug'
 			command = 'sudo -u %s screen -dmS vmesh bash -ilc \"%s %s\"'
 			command %= (username, script_path, script_args)
 
 			import shlex
 			command_seq = shlex.split(command)
 
-			logging.info('Running package script with command: %s' % command)
+			log.info('Running package script with command: %s' % command)
+			log.info('--- Vmesh user-data-script complete ---')
+			logging.shutdown()
 			errno = subprocess.check_call(args=command_seq)
-			return errno
+			sys.exit(errno)
 
 def reset_local_environment():
 	import os
@@ -213,7 +236,5 @@ if __name__ == '__main__':
 	if args.reset:
 		reset_local_environment()
 	upgrade_and_install()
-	errno = run_package()
-	logging.shutdown()
-	sys.exit(errno)
+	run_package() # doesn't return
 

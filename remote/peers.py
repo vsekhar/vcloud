@@ -5,7 +5,7 @@ import socket
 
 from asynchat import async_chat
 
-import logger
+from logger import log
 import args
 import aws
 
@@ -97,7 +97,7 @@ class ConnectionHandler(BaseConnectionHandler):
 	def my_id_is(self, payload):
 		self.peer_id = payload
 		if self.peer_id == node_id:
-			logger.warning('self-connection detected: dropping')
+			log.warning('self-connection detected: dropping')
 			self.close_when_done()
 		elif self.peer_id in connections:
 			"""
@@ -109,11 +109,11 @@ class ConnectionHandler(BaseConnectionHandler):
 			"""
 			if random.choice((True, False)):
 				# drop this
-				logger.debug('duplicate connection: dropping unknown connection')
+				log.debug('duplicate connection: dropping unknown connection')
 				self.close_when_done()
 			else:
 				# drop other
-				logger.debug('duplicate connection: dropping known connection')
+				log.debug('duplicate connection: dropping known connection')
 				connections[self.peer_id].close_when_done()
 				self.keep_me()
 		else:
@@ -128,7 +128,7 @@ class ConnectionHandler(BaseConnectionHandler):
 		self.send_msg('hello-to-you')
 
 	def kernel(self, payload):
-		logger.debug('kernel message received: %s' % payload)
+		log.debug('kernel message received: %s' % payload)
 
 	command_table = {
 		'my_id_is': my_id_is,
@@ -142,7 +142,7 @@ class ConnectionHandler(BaseConnectionHandler):
 		try:
 			self.command_table[msg.cmd](self, msg.payload)
 		except KeyError:
-			logger.error('Received invalid command: %s' % msg.cmd)
+			log.error('Received invalid command: %s' % msg.cmd)
 
 class ServerSocket(asyncore.dispatcher):
     def __init__(self, bind_address='', port=0):
@@ -155,7 +155,7 @@ class ServerSocket(asyncore.dispatcher):
 
     def handle_accept(self):
         sock, address = self.accept()
-        logger.debug('incoming connection from %s' % str(address))
+        log.debug('incoming connection from %s' % str(address))
         ConnectionHandler(socket=sock, server=self, id=None) # incoming connection
 
     def handle_close(self):
@@ -165,14 +165,14 @@ poll = asyncore.poll
 serversocket = ServerSocket()
 hostname = aws.metadata['public-hostname']
 node_id = hostname + ':' + str(serversocket.port)
-logger.info('Node ID: %s' % node_id)
+log.info('Node ID: %s' % node_id)
 sdb_domain = aws.get_sdb_domain(args.sdb_domain)
 
 def new_connection(id):
 	addr,_,port = id.partition(':')
 	port = int(port)
 	sock = socket.create_connection((addr,port))
-	logger.debug('outgoing connection to %s' % id)
+	log.debug('outgoing connection to %s' % id)
 	ConnectionHandler(socket=sock, server=serversocket, id=id) # outgoing connection
 
 def hosts(ascending=False):
