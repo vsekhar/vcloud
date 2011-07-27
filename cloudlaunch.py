@@ -32,8 +32,8 @@ def parse_args():
 	parser.add_argument('-s', '--spot-instances', default=False, action='store_true', help='run with spot instances (default is on-demand instances)')
 	parser.add_argument('-p', '--persistent', default=False, action='store_true', help='make request persistent (valid only for spot instance requests)')
 	parser.add_argument('-r', '--price', type=float, default=0.04, help='price (valid only for spot instance requests, default=0.04)')
-	parser.add_argument('-d', '--package-directory', type=str, help='startup directory to package and send to nodes (default=<script_dir>/remote)')
-	parser.add_argument('-b', '--debug', default=False, action='store_true', help='run in debug mode')
+	parser.add_argument('-D', '--package-directory', type=str, help='startup directory to package and send to nodes (default=<script_dir>/remote)')
+	parser.add_argument('-d', '--debug', default=False, action='store_true', help='run in debug mode (more output)')
 	args = parser.parse_args()
 
 	# complex defaults
