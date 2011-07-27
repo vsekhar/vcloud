@@ -15,7 +15,7 @@ parser = argparse.ArgumentParser(description='vmesh-launch.py: initial package s
 parser.add_argument('-c', '--reset', default=False, action='store_true', help='reset metadata at startup')
 parser.add_argument('-l', '--local', default=False, action='store_true', help='run in local/debug mode (no AWS metadata, implies --interactive)')
 parser.add_argument('--log', type=str, default='vmesh.log', help='log file')
-parser.add_argument('-i', '--interactive', default=False, action='store_true', help='interactive (log to screen as well as file)')
+parser.add_argument('-i', '--interactive', default=False, action='store_true', help='interactive (don\' redirect console to logfile)')
 parser.add_argument('-d', '--debug', default=False, action='store_true', help='debug (print more output)')
 parser.add_argument('--list', default=False, action='store_true', help='list hosts and exit (do not register this host)')
 parser.add_argument('--config-file', type=str, help='config file')

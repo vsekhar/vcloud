@@ -20,7 +20,7 @@ def parse_args():
 
 	parser = argparse.ArgumentParser(description='user-data-script.py: initial python instance startup script')
 	parser.add_argument('-R', '--reset', default=False, action='store_true', help='reset local environment before running')
-	parser.add_argument('-i', '--interactive', default=False, action='store_true', help='interactive (no logfile)')
+	parser.add_argument('-i', '--interactive', default=False, action='store_true', help='interactive (don\'t redirect console to logfile)')
 	parser.add_argument('-l', '--local', default=False, action='store_true', help='run in local mode (use fake AWS metadata, skip apt package updates and cleanup temporaries afterwards, implies --interactive)')
 	parser.add_argument('-d', '--debug', default=False, action='store_true', help='run in debug mode (additional reporting, etc.)')
 	parser.add_argument('--skip-update', default=False, action='store_true', help='skip apt package updates')
@@ -81,12 +81,12 @@ def setup_logging():
 	fh.setFormatter(formatter)
 	log.addHandler(fh)
 
-	if args.interactive:
-		# setup logging to console
-		sh = logging.StreamHandler()
-		sh.setFormatter(formatter)
-		log.addHandler(sh)
-	else:
+	# setup logging to console
+	sh = logging.StreamHandler()
+	sh.setFormatter(formatter)
+	log.addHandler(sh)
+
+	if not args.interactive:
 		# no one is watching, so capture python exception errors and the like
 		global old_stdout, old_stderr
 		log.info('STDOUT and STDERR redirected to log file: %s' % logfile.name)

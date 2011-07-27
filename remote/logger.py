@@ -21,12 +21,12 @@ fh = logging.StreamHandler(stream=logfile) # don't use FileHandler since we have
 fh.setFormatter(formatter)
 log.addHandler(fh)
 
-if args.interactive:
-	# setup logging to console
-	sh = logging.StreamHandler()
-	sh.setFormatter(formatter)
-	log.addHandler(sh)
-else:
+# setup logging to console
+sh = logging.StreamHandler()
+sh.setFormatter(formatter)
+log.addHandler(sh)
+
+if not args.interactive:
 	# no one is watching, so capture python exception errors and the like
 	global old_stdout, old_stderr
 	log.info('STDOUT and STDERR redirected to log file: %s' % logfile.name)
