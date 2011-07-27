@@ -16,7 +16,7 @@ parser.add_argument('-c', '--reset', default=False, action='store_true', help='r
 parser.add_argument('-l', '--local', default=False, action='store_true', help='run in local/debug mode (no AWS metadata, implies --interactive)')
 parser.add_argument('--log', type=str, default='vmesh.log', help='log file')
 parser.add_argument('-i', '--interactive', default=False, action='store_true', help='interactive (don\' redirect console to logfile)')
-parser.add_argument('-d', '--debug', default=False, action='store_true', help='debug (print more output)')
+parser.add_argument('-d', '--debug', default=argparse.SUPPRESS, action='store_true', help='debug (print more output)')
 parser.add_argument('--list', default=False, action='store_true', help='list hosts and exit (do not register this host)')
 parser.add_argument('--config-file', type=str, help='config file')
 parser.add_argument('--access-key', type=str, help='access key')
@@ -34,6 +34,7 @@ config_parser.add_argument('--kernel-interval', type=int, default=3)
 config_parser.add_argument('--peer-mgmt-interval', type=int, default=3)
 config_parser.add_argument('--clean-up-interval', type=int, default=30)
 config_parser.add_argument('--peer-entry-lifetime', type=int, default=120)
+config_parser.add_argument('--debug', default=argparse.SUPPRESS, action='store_true')
 from multiprocessing import cpu_count
 config_parser.add_argument('--kernel-processes', type=int, default=cpu_count() * 2)
 
@@ -45,6 +46,12 @@ config_args = config_parser.parse_args(config_data)
 # pull args into modele namespace
 sys.modules[__name__].__dict__.update(config_args.__dict__)
 sys.modules[__name__].__dict__.update(parsed_args.__dict__) # command-line overrides config file
+
+try:
+	debug
+except NameError:
+	# No debug option specified anywhere, so make it false
+	debug = False
 
 # debug
 if __name__ == '__main__':

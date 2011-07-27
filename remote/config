@@ -2,6 +2,9 @@
 # Parameters associated with the mesh network
 ###############################################
 
+# Debug (comment out to switch off)
+--debug
+
 # Number of connections to try and maintain
 --connections=3
 
