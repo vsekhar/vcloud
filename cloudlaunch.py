@@ -182,8 +182,8 @@ def main():
 	elif args.local:
 		execv_local(user_data=script) # doesn't return
 	else:
-		resv = launch_remote(user_data=script)
-		print resv
+		request_response = launch_remote(user_data=script)
+		print request_response
 
 if __name__ == '__main__':
 	main()
