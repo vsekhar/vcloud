@@ -112,7 +112,7 @@ class ScopedTemporaryFile:
 	def name(self):
 		return self.file.name
 
-def launch_local(user_data):
+def execv_local(user_data):
 	import tempfile, os, stat, sys
 	tf = ScopedTemporaryFile(executable=True)
 	tf.file.writelines(user_data)
@@ -180,7 +180,7 @@ def main():
 		sys.exit(0)
 
 	elif args.local:
-		launch_local(user_data=script)
+		execv_local(user_data=script) # doesn't return
 	else:
 		resv = launch_remote(user_data=script)
 		print resv

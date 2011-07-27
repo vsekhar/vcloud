@@ -178,7 +178,7 @@ class TempDir:
 		shutil.rmtree(self.tdir)
 		self.tdir = None
 
-def run_package():
+def execv_package():
 	global args, log
 
 	bucket = get_s3_bucket()
@@ -236,5 +236,5 @@ if __name__ == '__main__':
 	if args.reset:
 		reset_local_environment()
 	upgrade_and_install()
-	run_package() # doesn't return
+	execv_package() # doesn't return
 
