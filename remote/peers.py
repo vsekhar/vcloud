@@ -90,6 +90,7 @@ class ConnectionHandler(BaseConnectionHandler):
 		BaseConnectionHandler.handle_close(self)
 
 	def keep_me(self):
+		# this is idempotent
 		connections[self.peer_id] = self
 		unknown_connections.discard(self)
 		self.send_msg('id_ack')
@@ -121,6 +122,7 @@ class ConnectionHandler(BaseConnectionHandler):
 			self.keep_me()
 
 	def id_ack(self, _):
+		# this is idempotent
 		connections[self.peer_id] = self
 		unknown_connections.discard(self)
 
