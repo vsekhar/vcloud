@@ -31,10 +31,6 @@ if __name__ == '__main__':
 	# initialization
 	peers.update_node()
 	peers.purge_old_peers()
-	if args.debug:
-		log.info('Debug logging mode enabled')
-		import os
-		log.debug('Working directory: %s' % os.getcwd())
 
 	# main run loop
 	try:
