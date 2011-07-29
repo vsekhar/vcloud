@@ -16,7 +16,7 @@ def random_string(length = 8):
 
 if __name__ == '__main__':
 	if args.list:
-		for host in peers.hosts:
+		for host in peers.hosts():
 			print host.name, host['timestamp']
 		exit(0)
 
