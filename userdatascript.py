@@ -23,7 +23,7 @@ def parse_args():
 	parser.add_argument('-i', '--interactive', default=False, action='store_true', help='interactive (don\'t redirect console to logfile)')
 	parser.add_argument('-l', '--local', default=False, action='store_true', help='run in local mode (use fake AWS metadata, skip apt package updates and cleanup temporaries afterwards, implies --interactive)')
 	parser.add_argument('-d', '--debug', default=False, action='store_true', help='run in debug mode (additional reporting, etc.)')
-	parser.add_argument('--skip-update', default=False, action='store_true', help='skip apt package updates')
+	parser.add_argument('-s', '--skip-update', default=False, action='store_true', help='skip apt package updates')
 	parser.add_argument('--vmesh-trying-for-sudo', default=False, action='store_true', help='INTERNAL: flag used in permissions escalation')
 
 	args = parser.parse_args()
