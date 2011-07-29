@@ -201,15 +201,16 @@ def execv_package():
 			tar = tarfile.open(fileobj=tf)
 			tar.extractall(path=td)
 
-			# build command to drop permissions, run inside a screen, and provide access credentials
+			# build script command and credentials
 			script_path = td + os.sep + CREDENTIALS.script
 			script_args = '--access-key=%s --secret-key=%s' % (CREDENTIALS.access_key, CREDENTIALS.secret_key)
-			if args.local:
-				script_args += ' --local'
-			if args.interactive:
-				script_args += ' --interactive'
-			if args.debug:
-				script_args += ' --debug'
+
+			# pass through certain command-line args
+			pass_through_args = ['local', 'interactive', 'debug']
+			for arg in pass_through_args:
+				if getattr(args, arg):
+					script_args += ' --%s' % arg
+
 			command = 'sudo -u %s screen -dmS vmesh bash -ilc \"%s %s\"'
 			command %= (username, script_path, script_args)
 
