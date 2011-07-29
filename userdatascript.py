@@ -14,6 +14,7 @@ logfilename = 'vmesh.log'
 import logging
 
 internal_packages = ['python-boto', 'screen', 'htop']
+temp_prefix = 'vmeshtmp'
 
 def parse_args():
 	import argparse
@@ -163,7 +164,7 @@ class TempDir:
 		import tempfile
 		if self.tdir is not None:
 			self.remove()
-		self.tdir = tempfile.mkdtemp(dir=self.dir)
+		self.tdir = tempfile.mkdtemp(dir=self.dir, prefix=temp_prefix)
 		return self.tdir
 	
 	def checked_remove(self):
@@ -192,7 +193,7 @@ def execv_package():
 	homedir = userinfo.pw_dir
 
 	import subprocess, tempfile, tarfile, sys, os
-	with tempfile.SpooledTemporaryFile(max_size=10240, mode='w+b', dir=homedir) as tf:
+	with tempfile.SpooledTemporaryFile(max_size=10240, mode='w+b', dir=homedir, prefix=temp_prefix) as tf:
 		with TempDir(dir=homedir, delete=args.local, prompt=True) as td:
 			log.info('Downloading %s from bucket %s' % (CREDENTIALS.package, CREDENTIALS.bucket))
 			key.get_contents_to_file(tf)
@@ -218,7 +219,7 @@ def execv_package():
 			log.info('Running package script with command: %s' % command)
 			log.info('--- Vmesh user-data-script complete ---')
 			logging.shutdown()
-			errno = subprocess.check_call(args=command_seq)
+			errno = subprocess.check_call(args=command_seq, cwd=homedir)
 			sys.exit(errno)
 
 def reset_local_environment():

@@ -15,6 +15,7 @@ import boto
 import sys
 
 include_prefix = '### VMESH_INCLUDE:'
+temp_prefix = 'vmeshtmp'
 
 def parse_args():
 	import argparse
@@ -88,9 +89,9 @@ def upload_package():
 		print ' done'
 
 class ScopedTemporaryFile:
-	def __init__(self, executable=False):
+	def __init__(self, executable=False, dir=None):
 		import tempfile
-		self.file = tempfile.NamedTemporaryFile(delete=False)
+		self.file = tempfile.NamedTemporaryFile(delete=False, prefix=temp_prefix, dir=dir)
 		self.name = self.file.name
 		if executable:
 			self.mkexec()
@@ -113,18 +114,17 @@ class ScopedTemporaryFile:
 		return self.file.name
 
 def execv_local(user_data):
-	import tempfile, os, stat, sys
-	tf = ScopedTemporaryFile(executable=True)
+	import os, subprocess, sys, pwd
+	homedir = pwd.getpwuid(os.getuid()).pw_dir
+	tf = ScopedTemporaryFile(executable=True, dir=homedir)
 	tf.file.writelines(user_data)
 	tf.close()
-	import subprocess, sys
 	sys.stdout.flush()
 	new_args = [tf.name, '--local']
 	if args.debug:
 		new_args += ['--debug']
 	try:
-		proc = subprocess.Popen(new_args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
-		errno = proc.wait()
+		errno = subprocess.check_call(args=new_args, cwd=homedir, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
 	except KeyboardInterrupt:
 		errno = 1
 	exit(errno)
