@@ -27,6 +27,7 @@ package = ''
 
 # Name of script inside package to run on startup
 #    - optional path can be specified relative to the root of the package
+#    - script must be executable: chmod +x <script>
 #
 # E.g.
 #   Script in package root:		script = 'vmesh-launch.py'
