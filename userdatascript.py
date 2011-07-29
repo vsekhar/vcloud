@@ -225,9 +225,10 @@ def execv_package():
 
 def reset_local_environment():
 	import os
-	username, homedir = user_info()
-	os.system('rm -rf %s' % homedir + os.sep + 'tmp*')
-	os.system('rm -f %s' % logfilename)
+	userinfo = user_info()
+	homedir = userinfo.pw_dir
+	os.system('rm -rf %s' % homedir + os.sep + temp_prefix + '*')
+	# os.system('rm -f %s' % homedir + os.sep + logfilename)
 
 if __name__ == '__main__':
 	import sys
