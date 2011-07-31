@@ -3,8 +3,8 @@ import args
 
 if args.local:
 	metadata = {'public-hostname': 'localhost',
-			'ami-launch-index': 0,
-			'ami-id': 'ami-localdebug'}
+				'ami-launch-index': 0,
+				'ami-id': 'ami-localdebug'}
 else:
 	import boto.utils
 	metadata = boto.utils.get_instance_metadata()
