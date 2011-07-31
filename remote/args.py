@@ -41,7 +41,7 @@ config_parser.add_argument('--kernel-processes', type=int, default=cpu_count() *
 
 if not parsed_args.config_file:
 	parsed_args.config_file = os.path.dirname(__file__) + os.sep + 'config'
-config_data = [line.strip() for line in open(parsed_args.config_file).readlines() if not line.startswith('#') and not line.strip() == '']
+config_data = [line.strip() for line in open(parsed_args.config_file).readlines() if not line.strip().startswith('#') and not line.strip() == '']
 config_args = config_parser.parse_args(config_data)
 
 # pull args into modele namespace
