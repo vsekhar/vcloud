@@ -207,10 +207,10 @@ def top_up():
 
 def print_peers():
 	import time
-	print 'Peers (hostname, port, age):'
+	print('Peers (hostname, port, age):')
 	cur_time = time.time()
 	for host in hosts():
-		print host.name, cur_time - float(host['timestamp'])
+		print(host.name, cur_time - float(host['timestamp']))
 
 def purge_old_peers(lifetime=int(args.peer_entry_lifetime)):
 	import time

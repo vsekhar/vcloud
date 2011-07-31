@@ -17,7 +17,7 @@ def random_string(length = 8):
 if __name__ == '__main__':
 	if args.list:
 		for host in peers.hosts():
-			print host.name, host['timestamp']
+			print(host.name, host['timestamp'])
 		exit(0)
 
 	if args.reset:
@@ -42,7 +42,8 @@ if __name__ == '__main__':
 			# kernel processing
 			if cur_time - kernel_time > args.kernel_interval:
 				try:
-					connection = random.choice(peers.connections.values())
+					random_id = random.choice(list(peers.connections.keys()))
+					connection = peers.connections[random_id]
 				except IndexError:
 					pass
 				else:

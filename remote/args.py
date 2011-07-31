@@ -8,7 +8,7 @@ def hider(x):
 		return x.partition('=')[0] + '=[hidden]'
 	else:
 		return x
-safeargv = map(hider, sys.argv)
+safeargv = list(map(hider, sys.argv))
 
 # parse command line
 parser = argparse.ArgumentParser(description='vmesh-launch.py: initial package script')
@@ -55,5 +55,5 @@ except NameError:
 
 # debug
 if __name__ == '__main__':
-	print sys.modules[__name__].__dict__
+	print(sys.modules[__name__].__dict__)
 
