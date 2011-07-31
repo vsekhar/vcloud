@@ -44,7 +44,7 @@ if not parsed_args.config_file:
 config_data = [line.strip() for line in open(parsed_args.config_file).readlines() if not line.strip().startswith('#') and not line.strip() == '']
 config_args = config_parser.parse_args(config_data)
 
-# pull args into modele namespace
+# pull args into module namespace
 sys.modules[__name__].__dict__.update(config_args.__dict__)
 sys.modules[__name__].__dict__.update(parsed_args.__dict__) # command-line overrides config file
 
