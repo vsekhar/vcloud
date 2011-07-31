@@ -26,6 +26,7 @@ if __name__ == '__main__':
 	# management intervals
 	peer_mgmt_time = time.time()
 	kernel_time = time.time()
+	checkpoint_time = time.time()
 	clean_up_time = time.time()
 
 	# initialization
@@ -63,6 +64,12 @@ if __name__ == '__main__':
 						s += c.peer_id + ' '
 					s += 'unknowns: %d' % len(peers.unknown_connections)
 					log.debug(s)
+
+			# checkpoint
+			if cur_time - checkpoint_time > args.checkpoint_interval:
+				# do checkpoint (stopping the kernel?)
+				# tell kernels to checkpoint themselves?
+				pass
 
 			# clean-up
 			if cur_time - clean_up_time > args.clean_up_interval:

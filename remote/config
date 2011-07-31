@@ -17,6 +17,7 @@
 # Service intervals (seconds)
 --peer-mgmt-interval=3
 --kernel-interval=3
+--checkpoint-interval=120
 --clean-up-interval=30
 
 # Number of kernel processes to run (default is cpu_count * 2)
