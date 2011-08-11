@@ -192,7 +192,7 @@ def execv_package():
 	username = userinfo.pw_name
 	homedir = userinfo.pw_dir
 
-	import subprocess, tempfile, tarfile, sys, os
+	import subprocess, tempfile, tarfile, sys, os, shlex
 	with tempfile.SpooledTemporaryFile(max_size=10240, mode='w+b', dir=homedir, prefix=temp_prefix) as tf:
 		with TempDir(dir=homedir, delete=args.local, prompt=True) as td:
 			log.info('Downloading %s from bucket %s' % (CREDENTIALS.package, CREDENTIALS.bucket))
@@ -214,7 +214,6 @@ def execv_package():
 			command = 'sudo -u %s screen -dmS vmesh bash -ilc \"%s %s\"'
 			command %= (username, script_path, script_args)
 
-			import shlex
 			command_seq = shlex.split(command)
 
 			log.info('Running package script with command: %s' % command)
