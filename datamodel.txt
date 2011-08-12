@@ -1,0 +1,42 @@
+TODOs
+-----
+
+Configure vmesh-launch.py's logger to be master output
+ - regular logger uses a FileHandler
+ - --interactive mode simply adds stdout as a StreamHandler
+ - thus you get simultaneous logging when needed
+
+Configure vmesh to create a log server, and compute processes log via SocketHandlers
+ - vmesh creates a thread in which it runs the log server (logs are threadsafe)
+ - compute processes can then also create their own logs if desired by simply
+   adding FileHandlers to the per-process logs
+
+Configure stats logger that streams stats (no debug text) about evolution
+ - Does it need to be separate from the regular logging stream?
+
+Stream logs in real-time? Stream through SNS? Archive to S3?
+ - How to make it scalable? >50 machines?
+
+How to update running instances? Are instance shutdown-restart required? Preferred?
+
+How to send updates in real-time?
+ -evolutionary params:
+  -energy in/out flows
+  
+ -mesh params:
+  -target connection count
+  -checkpoint interval
+  -one-off commands (e.g. checkpoint/log now)
+
+Structure
+---------
+
+Machine (1 instance of vmesh, 1 island per CPU):
+ - Subprocess module:
+   - Process 1: island 1
+   - ...
+   - Process n: island n
+  
+Vmesh handles interchange between islands on the same machine, interchange between
+islands on other machines, and machine memory/cpu management
+
