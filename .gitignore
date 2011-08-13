@@ -11,9 +11,6 @@
 
 *.log
 
-# Access credentials
-CREDENTIALS.py
-
 # editor files
 *~
 
@@ -21,10 +18,7 @@ CREDENTIALS.py
 .sconsign
 .sconsign.dblite
 
-# Be sure to include gitignore eventhough it is a dot file
+# dot files, but include .gitignore
+.*
 !.gitignore
-
-# build directories
-Debug/
-Release/
 

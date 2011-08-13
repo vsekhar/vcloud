@@ -1,19 +1,22 @@
 #!/usr/bin/env python
 
-packages = []
 logfilename = 'vmesh.log'
 
 ################################################
 # End user modifiables
 ################################################
 
-### VMESH_INCLUDE: CREDENTIALS.py
-# above line gets you access_key, secret_key, bucket, package, and script,
-# access them as CREDENTIALS.access_key, etc.
+### VMESH_CONFIG
+# above line gets you access_key, secret_key, install_packages, bucket, package, and script,
+# access them as CONFIG.access_key, etc.
 
 import logging
+install_packages = ['python-boto', 'screen', 'htop']
+try:
+	install_packages += list(CONFIG.install_packages)
+except AttributeError:
+	pass
 
-internal_packages = ['python-boto', 'screen', 'htop']
 temp_prefix = 'vmeshtmp'
 
 def parse_args():
@@ -60,7 +63,7 @@ def user_info():
 	if args.local:
 		return pwd.getpwuid(os.getuid())
 	else:
-		return pwd.getpwnam(CREDENTIALS.user.strip())
+		return pwd.getpwnam(CONFIG.user.strip())
 
 def setup_logging():
 	import time, sys, os
@@ -116,7 +119,6 @@ def upgrade_and_install():
 			cache.update()
 			cache.open(None)
 			cache.upgrade()
-			install_packages = set(internal_packages + packages)
 			for pkg in install_packages:
 				cache[pkg].mark_install()
 			log.info('Upgrading and installing...')
@@ -136,10 +138,10 @@ def get_s3_bucket():
 	if args.local:
 		s3conn = boto.connect_s3()
 	else:
-		s3conn = boto.connect_s3(CREDENTIALS.access_key, CREDENTIALS.secret_key)
-	b = s3conn.get_bucket(CREDENTIALS.bucket)
+		s3conn = boto.connect_s3(CONFIG.node_access_key, CONFIG.node_secret_key)
+	b = s3conn.get_bucket(CONFIG.bucket)
 	if not b:
-		log.critical('Bucket %s does not exist' % CREDENTIALS.bucket)
+		log.critical('Bucket %s does not exist' % CONFIG.bucket)
 		exit(1)
 	return b
 
@@ -183,9 +185,9 @@ def execv_package():
 	global args, log
 
 	bucket = get_s3_bucket()
-	key = bucket.get_key(CREDENTIALS.package)
+	key = bucket.get_key(CONFIG.package)
 	if not key:
-		log.critical('Key %s in bucket %s does not exist' % (CREDENTIALS.package, CREDENTIALS.bucket))
+		log.critical('Key %s in bucket %s does not exist' % (CONFIG.package, CONFIG.bucket))
 		exit(1)
 
 	userinfo = user_info()
@@ -195,15 +197,15 @@ def execv_package():
 	import subprocess, tempfile, tarfile, sys, os, shlex
 	with tempfile.SpooledTemporaryFile(max_size=10240, mode='w+b', dir=homedir, prefix=temp_prefix) as tf:
 		with TempDir(dir=homedir, delete=args.local, prompt=True) as td:
-			log.info('Downloading %s from bucket %s' % (CREDENTIALS.package, CREDENTIALS.bucket))
+			log.info('Downloading %s from bucket %s' % (CONFIG.package, CONFIG.bucket))
 			key.get_contents_to_file(tf)
 			tf.seek(0)
 			tar = tarfile.open(fileobj=tf)
 			tar.extractall(path=td)
 
-			# build script command and credentials
-			script_path = td + os.sep + CREDENTIALS.script
-			script_args = '--access-key=%s --secret-key=%s' % (CREDENTIALS.access_key, CREDENTIALS.secret_key)
+			# build script command and CONFIG
+			script_path = td + os.sep + CONFIG.package_script
+			script_args = '--access-key=%s --secret-key=%s' % (CONFIG.node_access_key, CONFIG.node_secret_key)
 
 			# pass through certain command-line args
 			pass_through_args = ['local', 'interactive', 'debug']
@@ -215,10 +217,10 @@ def execv_package():
 			command %= (username, script_path, script_args)
 
 			command_seq = shlex.split(command)
-
+			print command_seq
 			log.info('Running package script with command: %s' % command)
 			log.info('--- Vmesh user-data-script complete ---')
-			logging.shutdown()
+			logging.shutdown() # log file may be reused by package script
 			errno = subprocess.check_call(args=command_seq, cwd=homedir)
 			sys.exit(errno)
 
@@ -227,16 +229,17 @@ def reset_local_environment():
 	userinfo = user_info()
 	homedir = userinfo.pw_dir
 	os.system('rm -rf %s' % homedir + os.sep + temp_prefix + '*')
-	# os.system('rm -f %s' % homedir + os.sep + logfilename)
+	os.system('rm -f %s' % homedir + os.sep + logfilename)
 
 if __name__ == '__main__':
 	import sys
 	global args
 	args = parse_args()
 	
-	setup_logging()
 	if args.reset:
 		reset_local_environment()
+
+	setup_logging()
 	upgrade_and_install()
 	execv_package() # doesn't return
 

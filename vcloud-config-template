@@ -1,0 +1,38 @@
+#
+# vcloud configuration file (copy to ~/.vcloud, or specify using --config option)
+#
+
+[local]
+# credentials for local use (if commented out, local boto default credentials are used)
+#local_access_key = 'ABCD1234'
+#local_secret_key = '9876eA4'
+
+[DEFAULT]
+# credentials for launched AMI's to use (may be different than what we're using locally)
+node_access_key = 'ABCD1234'
+node_secret_key = '9876eA4'
+install_packages = ''
+
+# what to start
+ami = 'ami-e2af508b' ; Ubuntu 11.04 Natty Server 32-bit us-east-1
+instance_type = 'm1.small'
+security_groups = ['default', 'Cluster']
+count = 1
+spot_instances = False
+key_pair = 'my_keypair'
+
+# what code to send and run, and how to run it
+package_dir = '/home/code/package_dir'
+bucket = 'package_bucket'
+package = 'package.tar.gz'
+package_script = 'vcloud-launch.py' ; Relative to package root
+user = 'ubuntu'
+
+#
+# Configurations below start with DEFAULT above, and replace the needed values
+#
+
+[new_config]
+additional_argument = 1 ; new arguments are added to those in DEFAULT
+user = 'different_user' ; existing arguments are replaced
+
