@@ -23,6 +23,30 @@ if not _args.config_file:
 config = ConfigParser.SafeConfigParser()
 config.read(_args.config_file)
 
+# handle inheritance
+inherit_processed = set()
+
+def process_inheritance(section):
+	inherit_processed.add(section)
+
+	# does it inherit anything?
+	if config.has_option(section, 'inherit'):
+		src = parse(config.get(section, 'inherit'))
+
+		# recurse if needed
+		if src not in inherit_processed:
+			process_inheritance(src)
+
+		# process current section
+		cur_values = list(config.items(section)) # stash (dest overrides src)
+		for name, value in config.items(src):
+			config.set(section, name, value) # get source values
+		for name, value in cur_values:
+			config.set(section, name, value) # restore overrides
+
+for section in config.sections():
+	process_inheritance(section)
+
 # combined getter
 def get(name, section=None):
 	global _args
