@@ -142,6 +142,8 @@ def launch_remote(user_data):
 
 def main():
 	import sys
+	do_launch = True
+
 	if args.get('list_configurations'):
 		for section in args.config.sections():
 			print section
@@ -150,17 +152,18 @@ def main():
 	script = process_script()
 	if args.get('script_only'):
 		print script
-		sys.exit(0)
+		do_launch = False
 
 	upload_package()
 	if args.get('upload_only'):
-		sys.exit(0)
+		do_launch = False
 
-	elif args.get('local'):
-		launch_local(user_data=script)
-	else:
-		request_response = launch_remote(user_data=script)
-		print request_response
+	if do_launch:
+		if args.get('local'):
+			launch_local(user_data=script)
+		else:
+			request_response = launch_remote(user_data=script)
+			print request_response
 
 if __name__ == '__main__':
 	main()
