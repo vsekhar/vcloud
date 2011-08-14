@@ -142,6 +142,10 @@ def launch_remote(user_data):
 
 def main():
 	import sys
+	if args.get('list_configurations'):
+		for section in args.config.sections():
+			print section
+		return
 
 	script = process_script()
 	if args.get('script_only'):
