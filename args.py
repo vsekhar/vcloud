@@ -13,6 +13,7 @@ parser.add_argument('-s', '--script-only', default=False, action='store_true', h
 parser.add_argument('-f', '--config-file', default=None, help='config file to use (default=\'~/.vcloud\')')
 parser.add_argument('-c', '--configuration', default='DEFAULT', help='configuration name in config file (default=\'DEFAULT\')')
 parser.add_argument('--list-configurations', default=False, action='store_true', help='list configurations, then exit')
+parser.add_argument('-n', '--count', default=argparse.SUPPRESS, help='number of nodes to start')
 parser.add_argument('-d', '--debug', default=False, action='store_true', help='run in debug mode (more output)')
 _args = parser.parse_args()
 
