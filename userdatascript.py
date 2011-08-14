@@ -16,6 +16,7 @@ try:
 	install_packages += list(CONFIG.install_packages)
 except AttributeError:
 	pass
+repositories = list(CONFIG.repositories)
 
 temp_prefix = 'vmeshtmp'
 
@@ -115,21 +116,37 @@ def upgrade_and_install():
 		import apt
 		cache = apt.Cache()
 		try:
+			# repos
+			from softwareproperties.SoftwareProperties import SoftwareProperties
+			sp = SoftwareProperties()
+			for repo in repositories:
+				if sp.add_source_from_line(repo):
+					log.info('Adding repository: %s' % repo)
+				else:
+					log.error('Error adding repository: %s' % repo)
+			sp.sourceslist.save()
+
+			# packages
 			log.info('Updating package info...')
 			cache.update()
 			cache.open(None)
 			cache.upgrade()
 			for pkg in install_packages:
-				cache[pkg].mark_install()
-			log.info('Upgrading and installing...')
+				try:
+					cache[pkg].mark_install()
+					log.debug('Marking package for install: %s' % pkg)
+				except KeyError:
+					log.error('Could not mark package for install: %s' % pkg)
+			log.info('Committing package changes')
 			cache.commit()
 		except apt.cache.LockFailedException:
 			if not args.vmesh_trying_for_sudo:
-				log.info("Need super-user rights to upgrade and install, restarting with sudo...")
+				log.info("Need super-user rights to upgrade and install, restarting (with sudo)")
 				restart(with_sudo=True, add_args=['--vmesh-trying-for-sudo'])
 			else:
+				log.error('Could not acquire apt cache lock (someone else is installing stuff, or this user is not a sudoer)')
 				raise
-		log.info("Upgrade/install complete, restarting without sudo...")
+		log.info("Upgrade/install complete, restarting (no sudo)")
 		restart(with_sudo=False, add_args=['--skip-update'], remove_args=['--vmesh-trying-for-sudo'])
 
 def get_s3_bucket():
