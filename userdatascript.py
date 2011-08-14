@@ -235,7 +235,6 @@ def execv_package():
 			command %= (username, script_path, script_args)
 
 			command_seq = shlex.split(command)
-			print command_seq
 			log.info('Running package script with command: %s' % command)
 			log.info('--- Vmesh user-data-script complete ---')
 			logging.shutdown() # log file may be reused by package script
