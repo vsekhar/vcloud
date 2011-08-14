@@ -2,7 +2,7 @@
 import sys
 import os
 import argparse
-import ast
+from ast import literal_eval as parse
 import ConfigParser
 
 # command line
@@ -30,5 +30,5 @@ def get(name, section=None):
 		return getattr(_args, name) # command-line overrides configuration file
 	except AttributeError:
 		global config, config_name
-		return ast.literal_eval(config.get(section or _args.configuration, name))
+		return parse(config.get(section or _args.configuration, name))
 
