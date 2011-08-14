@@ -54,6 +54,7 @@ def restart(with_sudo=False, add_args=[], remove_args=[]):
 
 	new_args = filter(myfilter, new_args)
 	new_args += add_args
+	logging.shutdown()
 	sys.stdout.flush()
 	os.execvp(command, new_args)
 	# exit(0)
