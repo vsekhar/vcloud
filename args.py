@@ -47,8 +47,10 @@ def process_inheritance(section):
 for section in config.sections():
 	process_inheritance(section)
 
-# combined getter
+# combined getter (defaults to active configuration, unless a section is specified)
 def get(name, section=None):
+	""" Argument getter (combines command-line and config file, with command-line
+		taking precedence) """
 	global _args
 	try:
 		return getattr(_args, name) # command-line overrides configuration file
