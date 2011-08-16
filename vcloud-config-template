@@ -1,5 +1,5 @@
 #
-# vcloud configuration file (copy to ~/.vcloud, or specify using --config option)
+# vcloud configuration file (copy to ~/.vcloud)
 #
 
 [local]
@@ -7,32 +7,37 @@
 #local_access_key = 'ABCD1234'
 #local_secret_key = '9876eA4'
 
+# This section is inherited into all configurations
 [DEFAULT]
 # credentials for launched AMI's to use (may be different than what we're using locally)
 node_access_key = 'ABCD1234'
 node_secret_key = '9876eA4'
-install_packages = ''
 
-# what to start
+# basic settings (1 small on-demand instance)
+[vmesh]
 ami = 'ami-e2af508b' ; Ubuntu 11.04 Natty Server 32-bit us-east-1
 instance_type = 'm1.small'
+
+# default opens port 22 (ssh) and all ports for inter-Cluster comms
 security_groups = ['default', 'Cluster']
-count = 1
+
+count = 1 ; can be overridden at command line
 spot_instances = False
-key_pair = 'my_keypair'
+key_pair = 'mykeypair'
+repositories = '' ; in deb-line formats, e.g. ['deb http://server/path stable repo', 'ppa:user/repo']
+install_packages = ['python-twisted', 'python-zope.interface']
 
 # what code to send and run, and how to run it
-package_dir = '/home/code/package_dir'
-bucket = 'package_bucket'
-package = 'package.tar.gz'
-package_script = 'vcloud-launch.py' ; Relative to package root
+package_dir = '/home/user/code'
+type = 'twisted' ; 'twisted' = run using twistd (anything else = run as a script)
+bucket = 'bucket'
+package = 'packagename'
+package_script = 'scriptname' ; Relative to package root
 user = 'ubuntu'
 
-#
-# Configurations below start with DEFAULT above, and replace the needed values
-#
-
-[new_config]
-additional_argument = 1 ; new arguments are added to those in DEFAULT
-user = 'different_user' ; existing arguments are replaced
+[spot]
+inherit = 'vmesh' ; pull in all settings from [vmesh] section
+spot_instances = True
+persistent = False
+price = 0.04
 
