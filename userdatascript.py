@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-logfilename = 'vmesh.log'
+logfilename = 'vcloud.log'
 
 ################################################
 # End user modifiables
@@ -12,6 +12,8 @@ logfilename = 'vmesh.log'
 
 import logging
 install_packages = ['python-boto', 'screen', 'htop']
+if CONFIG.type == 'twisted':
+	install_packages.append('python-twisted')
 try:
 	install_packages += list(CONFIG.install_packages)
 except AttributeError:
@@ -67,6 +69,14 @@ def user_info():
 	else:
 		return pwd.getpwnam(CONFIG.user.strip())
 
+def get_logfile_path():
+	global args
+	if args.local:
+		return logfilename # use current directory
+	else:
+		userinfo = user_info()
+		return os.path.join(userinfo.pw_dir, logfilename) # user's home dir
+
 def setup_logging():
 	import time, sys, os
 	global args, log
@@ -76,12 +86,8 @@ def setup_logging():
 	formatter = logging.Formatter(fmt='%(asctime)s %(name)s %(levelname)s: %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
 	
 	# setup logging to file
+	logfile = open(get_logfile_path(), 'a')
 	userinfo = user_info()
-	if args.local:
-		logfilepath = logfilename # use current directory
-	else:
-		logfilepath = userinfo.pw_dir + os.sep + logfilename # user's home dir
-	logfile = open(logfilepath, 'a')
 	os.fchown(logfile.fileno(), userinfo.pw_uid, userinfo.pw_gid)
 	fh = logging.StreamHandler(stream=logfile) # don't use FileHandler since we have to chown an open file
 	fh.setFormatter(formatter)
@@ -132,10 +138,10 @@ def upgrade_and_install():
 			cache.update()
 			cache.open(None)
 			cache.upgrade()
+			log.info('Marking packages for install: %s' % ' '.join(install_packages))
 			for pkg in install_packages:
 				try:
 					cache[pkg].mark_install()
-					log.debug('Marking package for install: %s' % pkg)
 				except KeyError:
 					log.error('Could not mark package for install: %s' % pkg)
 			log.info('Committing package changes')
@@ -190,21 +196,21 @@ class TempDir:
 	def checked_remove(self):
 		if self.tdir is not None and self.delete:
 			if self.prompt:
-				print 'TempDir (%s): Press any key to clean up' % self.tdir
+				print 'TempDir (%s): Press any key to clean up (\'q ENTER\' to cancel cleanup)' % self.tdir
 				try:
-					raw_input()
+					response = raw_input()
 				except KeyboardInterrupt:
 					pass
-				except EOFError:
-					pass
-			self.remove()
+				else:
+					if response.lower() != 'q':
+						self.remove()
 
 	def remove(self):
 		import shutil
 		shutil.rmtree(self.tdir)
 		self.tdir = None
 
-def execv_package():
+def run_package():
 	global args, log
 
 	bucket = get_s3_bucket()
@@ -241,30 +247,30 @@ def execv_package():
 				else:
 					command += ' --uid=%d' % userinfo.pw_uid
 					command += ' --gid=%d' % userinfo.pw_gid
+				command += ' --rundir=%s' % td.tdir	# run in package dir...
+				command += ' --logfile=%s' % get_logfile_path() # but log to user's homedir
 				command += ' ' + CONFIG.package_script
 				command += ' ' + script_args
 
 			else: # default to script type
-				script_path = td.tdir + os.sep + CONFIG.package_script
+				script_path = os.path.join(td.tdir, CONFIG.package_script)
 				if args.local:
 					command = '%s %s'
 				else: # daemonize
 					command = 'sudo -u %s screen -dmS vcloud bash -ilc \"%%s %%s\"' % username
 				command %= (script_path, script_args)
 
-			log.info('Running package with command: %s' % command)
+			log.debug('Running package with command: %s' % command)
 			log.info('--- Vcloud user-data-script complete ---')
-			logging.shutdown() # log file may be reused by package script
+			logging.shutdown() # log file may be reused by package
 
 			command_seq = shlex.split(command)
 			try:
-				errno = subprocess.check_call(args=command_seq, cwd=homedir, env=new_env)
+				return subprocess.check_call(args=command_seq, cwd=homedir, env=new_env)
 			except KeyboardInterrupt:
 				# KeyboardInterrupt propagates up through all scripts
-				errno = 0
 				td.prompt = False # user exited, so cleanup if local
-
-			sys.exit(errno)
+				return 0
 
 def reset_local_environment():
 	import os
@@ -283,5 +289,5 @@ if __name__ == '__main__':
 
 	setup_logging()
 	upgrade_and_install()
-	execv_package() # doesn't return
+	return run_package()
 
