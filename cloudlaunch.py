@@ -20,7 +20,7 @@ import args
 # script processing constants
 user_data_script_file = 'userdatascript.py'
 include_prefix = '### VMESH_CONFIG'
-config_to_include = ['node_access_key', 'node_secret_key', 'repositories', 'install_packages', 'bucket', 'package', 'package_script', 'user']
+config_to_include = ['node_access_key', 'node_secret_key', 'repositories', 'install_packages', 'bucket', 'package', 'type', 'package_script', 'user']
 
 temp_prefix = 'vmeshtmp'
 

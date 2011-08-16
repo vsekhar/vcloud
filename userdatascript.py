@@ -7,7 +7,7 @@ logfilename = 'vmesh.log'
 ################################################
 
 ### VMESH_CONFIG
-# above line gets you access_key, secret_key, install_packages, bucket, package, and script,
+# above line gets you access_key, secret_key, install_packages, bucket, package, type, and script,
 # access them as CONFIG.access_key, etc.
 
 import logging
@@ -175,7 +175,8 @@ class TempDir:
 		self.checked_remove()
 
 	def __enter__(self):
-		return self.create()
+		self.create()
+		return self
 
 	def __exit__(self, exc_type, exc, tb):
 		self.checked_remove()
@@ -185,13 +186,17 @@ class TempDir:
 		if self.tdir is not None:
 			self.remove()
 		self.tdir = tempfile.mkdtemp(dir=self.dir, prefix=temp_prefix)
-		return self.tdir
 	
 	def checked_remove(self):
 		if self.tdir is not None and self.delete:
 			if self.prompt:
 				print 'TempDir (%s): Press any key to clean up' % self.tdir
-				raw_input()
+				try:
+					raw_input()
+				except KeyboardInterrupt:
+					pass
+				except EOFError:
+					pass
 			self.remove()
 
 	def remove(self):
@@ -219,26 +224,46 @@ def execv_package():
 			key.get_contents_to_file(tf)
 			tf.seek(0)
 			tar = tarfile.open(fileobj=tf)
-			tar.extractall(path=td)
+			tar.extractall(path=td.tdir)
 
-			# build script command and CONFIG
-			script_path = td + os.sep + CONFIG.package_script
 			script_args = '--access-key=%s --secret-key=%s' % (CONFIG.node_access_key, CONFIG.node_secret_key)
-
-			# pass through certain command-line args
-			pass_through_args = ['local', 'interactive', 'debug']
-			for arg in pass_through_args:
+			for arg in ['local', 'interactive', 'debug']: # pass-through args
 				if getattr(args, arg):
 					script_args += ' --%s' % arg
 
-			command = 'sudo -u %s screen -dmS vmesh bash -ilc \"%s %s\"'
-			command %= (username, script_path, script_args)
+			new_env = dict(os.environ)
+
+			if CONFIG.type == 'twisted':
+				new_env['PYTHONPATH'] += ':' + td.tdir
+				command = 'twistd'
+				if args.local:
+					command += ' -n'
+				else:
+					command += ' --uid=%d' % userinfo.pw_uid
+					command += ' --gid=%d' % userinfo.pw_gid
+				command += ' ' + CONFIG.package_script
+				command += ' ' + script_args
+
+			else: # default to script type
+				script_path = td.tdir + os.sep + CONFIG.package_script
+				if args.local:
+					command = '%s %s'
+				else: # daemonize
+					command = 'sudo -u %s screen -dmS vcloud bash -ilc \"%%s %%s\"' % username
+				command %= (script_path, script_args)
+
+			log.info('Running package with command: %s' % command)
+			log.info('--- Vcloud user-data-script complete ---')
+			logging.shutdown() # log file may be reused by package script
 
 			command_seq = shlex.split(command)
-			log.info('Running package script with command: %s' % command)
-			log.info('--- Vmesh user-data-script complete ---')
-			logging.shutdown() # log file may be reused by package script
-			errno = subprocess.check_call(args=command_seq, cwd=homedir)
+			try:
+				errno = subprocess.check_call(args=command_seq, cwd=homedir, env=new_env)
+			except KeyboardInterrupt:
+				# KeyboardInterrupt propagates up through all scripts
+				errno = 0
+				td.prompt = False # user exited, so cleanup if local
+
 			sys.exit(errno)
 
 def reset_local_environment():
